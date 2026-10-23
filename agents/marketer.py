@@ -824,6 +824,17 @@ def _append_log(client_id: str, prompt: str, raw: str) -> None:
         fh.write(json.dumps({"prompt": prompt, "raw_response": raw}) + "\n")
 
 
+def _unwrap(data, key: str, warnings: list) -> dict:
+    """Accept the loader wrapper ({key: {...}, "warnings": [...]}) or the inner dict.
+
+    Loader warnings are copied into ``warnings`` so they are never lost.
+    """
+    if isinstance(data, dict) and key in data and "warnings" in data:
+        warnings.extend(data["warnings"])
+        return data[key]
+    return data or {}
+
+
 def run_strategist(
     client: ClientProfile,
     ticker_table: "pd.DataFrame",
@@ -832,21 +843,40 @@ def run_strategist(
     cutoff: str,
     optional_macro: Optional[dict] = None,
     caller: Optional[Callable[[str], str]] = None,
+    allow_empty_market: bool = False,
 ) -> StrategistResult:
     """Run the strategist end to end.
 
     ``caller`` is an injectable ``(prompt) -> str`` function so tests can mock
-    the LLM. If omitted, the default Bedrock caller is used. The raw output is
-    parsed into ``StrategistOutput`` (retrying up to ``MAX_RETRIES`` with the
-    validation error appended); on repeated failure it falls back to
-    ``neutral_output()`` with a warning. ``clamp_and_check`` always runs last.
+    the LLM. If omitted, the default Bedrock caller is used. ``market`` and
+    ``sector_feats`` accept either the loader wrapper dicts
+    ({"snapshot"/"features": ..., "warnings": [...]}) or the inner dict; loader
+    warnings are surfaced on the result either way. If there is no market data
+    at all (both empty) and ``allow_empty_market`` is False, the LLM is not
+    called and a neutral output is returned. The raw output is parsed into
+    ``StrategistOutput`` (retrying up to ``MAX_RETRIES`` with the validation
+    error appended); on repeated failure it falls back to ``neutral_output()``
+    with a warning. ``clamp_and_check`` always runs last.
     """
     call = caller or _default_bedrock_caller
-    base_prompt = build_prompt(client, ticker_table, market, sector_feats, cutoff, optional_macro)
 
     warnings: list[str] = []
     if optional_macro and optional_macro.get("warnings"):
         warnings.extend(optional_macro["warnings"])
+    market = _unwrap(market, "snapshot", warnings)
+    sector_feats = _unwrap(sector_feats, "features", warnings)
+
+    if not market:
+        warnings.append("market snapshot is empty: no market data reached the model")
+    if not sector_feats:
+        warnings.append("sector features are empty: no sector data reached the model")
+    if not market and not sector_feats and not allow_empty_market:
+        warnings.append("no market data at all: LLM not called, neutral output returned")
+        result = clamp_and_check(neutral_output(), ticker_table, cutoff)
+        result.warnings.extend(warnings)
+        return result
+
+    base_prompt = build_prompt(client, ticker_table, market, sector_feats, cutoff, optional_macro)
 
     prompt = base_prompt
     last_error = ""
@@ -1079,7 +1109,7 @@ def test_run_strategist_with_mocked_caller_returns_valid_output():
     def caller(_prompt: str) -> str:
         return good.model_dump_json()
 
-    res = run_strategist(_sample_client(), _sample_ticker_table(), {}, {}, CUTOFF, caller=caller)
+    res = run_strategist(_sample_client(), _sample_ticker_table(), {}, {}, CUTOFF, caller=caller, allow_empty_market=True)
     assert res.output.regime_label == "risk-on"
     assert res.output.sector_tilts["Information Technology"] == 0.1
 
@@ -1091,7 +1121,7 @@ def test_run_strategist_falls_back_to_neutral_on_bad_output():
         calls["n"] += 1
         return "this is not json"
 
-    res = run_strategist(_sample_client(), _sample_ticker_table(), {}, {}, CUTOFF, caller=bad_caller)
+    res = run_strategist(_sample_client(), _sample_ticker_table(), {}, {}, CUTOFF, caller=bad_caller, allow_empty_market=True)
     assert calls["n"] == MAX_RETRIES + 1
     assert res.output.insufficient_evidence is True
     assert all(v == 0.0 for v in res.output.sector_tilts.values())
@@ -1107,11 +1137,60 @@ def test_two_clients_produce_different_effects():
             return out.model_dump_json()
         return _c
 
-    res_a = run_strategist(_sample_client("client_a"), _sample_ticker_table(), {}, {}, CUTOFF, caller=caller_for("T01"))
-    res_b = run_strategist(_sample_client("client_b"), _sample_ticker_table(), {}, {}, CUTOFF, caller=caller_for("T02"))
+    res_a = run_strategist(_sample_client("client_a"), _sample_ticker_table(), {}, {}, CUTOFF, caller=caller_for("T01"), allow_empty_market=True)
+    res_b = run_strategist(_sample_client("client_b"), _sample_ticker_table(), {}, {}, CUTOFF, caller=caller_for("T02"), allow_empty_market=True)
     caps_a = [e.target for e in res_a.effects if e.effect.startswith("cap")]
     caps_b = [e.target for e in res_b.effects if e.effect.startswith("cap")]
     assert caps_a != caps_b
+
+
+def test_run_strategist_surfaces_loader_warnings_and_skips_llm(tmp_path):
+    missing = str(tmp_path / "no_market.csv")
+    feats = load_sector_features(CUTOFF, market_path=missing)
+    snap = load_market_snapshot(CUTOFF, market_path=missing)
+    called = {"n": 0}
+
+    def caller(_p: str) -> str:
+        called["n"] += 1
+        return "{}"
+
+    res = run_strategist(_sample_client(), _sample_ticker_table(), snap, feats, CUTOFF, caller=caller)
+    assert called["n"] == 0
+    assert res.output.insufficient_evidence is True
+    assert any("market file missing" in w for w in res.warnings)
+
+
+def test_run_strategist_uses_loader_wrapper_with_data(tmp_path):
+    # Tiny wide market CSV: Date + SPY + XLK, ~300 rows ending on CUTOFF.
+    dates = pd.bdate_range(end=CUTOFF, periods=300)
+    market_csv = tmp_path / "market.csv"
+    frame = pd.DataFrame(
+        {
+            "Date": dates.strftime("%Y-%m-%d"),
+            "SPY": [100.0 + i * 0.1 for i in range(len(dates))],
+            "XLK": [50.0 + i * 0.2 for i in range(len(dates))],
+        }
+    )
+    frame.to_csv(market_csv, index=False)
+
+    feats = load_sector_features(CUTOFF, market_path=str(market_csv))
+    snap = load_market_snapshot(CUTOFF, market_path=str(market_csv))
+
+    good = StrategistOutput(
+        regime_label="risk-on",
+        regime_evidence=[Evidence(fact="SPY above 200d", source="snapshot", available_on="2024-12-30")],
+        sector_tilts={"Information Technology": 0.05},
+        change_my_view_if="vol spikes",
+    )
+    called = {"n": 0}
+
+    def caller(_p: str) -> str:
+        called["n"] += 1
+        return good.model_dump_json()
+
+    res = run_strategist(_sample_client(), _sample_ticker_table(), snap, feats, CUTOFF, caller=caller)
+    assert called["n"] == 1
+    assert not any("market file missing" in w for w in res.warnings)
 
 
 def test_prompt_hides_symbols_and_has_no_future_dates():
