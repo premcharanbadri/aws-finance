@@ -5,3 +5,15 @@
    *.zip
 # yfinance price cache
 .yf_cache/
+
+# infra venv + generated data + dbt artifacts
+.venv_infra/
+data/marketing/
+data/accounting/
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+infra/cdk.out/
+
+__pycache__/
+*.pyc

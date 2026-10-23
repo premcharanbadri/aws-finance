@@ -13,10 +13,15 @@ the LLM adds narrative rationale and surfaces nuanced CPA questions.
 
 from __future__ import annotations
 
+import os
+
 from typing import Any
 
 from services.data import DataProvider
-from services.financials import get_financials as get_company_financials
+from services.financials import (
+    get_financials as get_company_financials,
+    get_financials_from_redshift,
+)
 from services.llm import get_client
 from services.schemas import BudgetEnvelope
 
@@ -64,7 +69,16 @@ def review(
     sample. Only the company knows its own numbers, so this is an input, not
     something we fabricate silently.
     """
-    fin_result = get_company_financials(company, explicit=financials)
+    fin_result = None
+    # When pointed at the warehouse, derive financials from the real GL
+    # (liquidity_snapshot) via Text-to-SQL unless the caller overrode them.
+    if financials is None and os.getenv("DATA_PROVIDER", "").lower() == "aws":
+        try:
+            fin_result = get_financials_from_redshift(company)
+        except Exception:
+            fin_result = None
+    if fin_result is None:
+        fin_result = get_company_financials(company, explicit=financials)
     fin = fin_result.data
     company = fin_result.company
     calc = _deterministic_budget(fin)

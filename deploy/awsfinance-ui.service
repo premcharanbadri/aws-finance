@@ -8,10 +8,14 @@ Type=simple
 User=participant
 WorkingDirectory=/workshop/aws-finance
 Environment=DATA_PROVIDER=yfinance
+Environment=DATA_PROVIDER=aws
 Environment=SENTIMENT_PROVIDER=comprehend
 Environment=AWS_REGION=us-east-1
 Environment=YF_CACHE_DIR=/workshop/aws-finance/.yf_cache
-ExecStart=/workshop/aws-finance/.venv/bin/streamlit run app.py \
+Environment=REDSHIFT_WORKGROUP=aws-finance-hackathon
+Environment=REDSHIFT_DATABASE=dev
+Environment=ADVISOR_SECRET_ARN=arn:aws:secretsmanager:us-east-1:615714606781:secret:aws-finance-hackathon-redshift-advisor-v3VgXZ
+ExecStart=/workshop/aws-finance/.venv_infra/bin/streamlit run app.py \
   --server.address 127.0.0.1 \
   --server.port 8081 \
   --server.baseUrlPath app \

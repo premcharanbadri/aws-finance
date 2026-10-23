@@ -321,21 +321,30 @@ class YFinanceDataProvider(SyntheticDataProvider):
         return base
 
 
-class AwsDataProvider(DataProvider):  # pragma: no cover - production stub
-    """Reads Redshift (prices/fundamentals), S3/vector store (news),
-    SageMaker Feature Store (features). Implement against real infra."""
+class AwsDataProvider(YFinanceDataProvider):
+    """Production provider: real market prices via yfinance, and the company's
+    budget/financials derived from the Redshift GL warehouse.
 
-    def __init__(self) -> None:
-        raise NotImplementedError(
-            "AwsDataProvider requires Redshift/S3/vector-store wiring. "
-            "Use DATA_PROVIDER=synthetic until infra is provisioned."
-        )
+    Division of data domains:
+      - Stock prices / fundamentals  -> yfinance (public market data; the
+        warehouse does not hold equity prices).
+      - Company financials / budget  -> Redshift liquidity_snapshot via
+        Text-to-SQL (handled in agents/cpa.py when DATA_PROVIDER=aws).
+      - News / sentiment             -> synthetic for now (S3 + vector-store
+        RAG is the documented next step).
 
-    def get_universe(self, industry=None): ...
-    def get_prices(self, ticker, days=252): ...
-    def get_fundamentals(self, ticker): ...
-    def get_news(self, ticker, limit=5): ...
-    def get_financials(self, company): ...
+    Inherits yfinance price/fundamental behavior; get_financials pulls the
+    real GL snapshot so even direct callers get warehouse-backed numbers.
+    """
+
+    def get_financials(self, company: str) -> dict[str, Any]:
+        try:
+            from services.financials import get_financials_from_redshift
+
+            return get_financials_from_redshift(company).data
+        except Exception:
+            return super().get_financials(company)
+
 
 
 # ---------------------------------------------------------------------------
