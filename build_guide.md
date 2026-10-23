@@ -159,6 +159,24 @@ Redshift endpoint + DB + credentials (via **Secrets Manager ARN**, not raw
 creds) and the table/column names for prices and fundamentals; S3 bucket +
 vector store (Bedrock Knowledge Base ID or OpenSearch endpoint) for news.
 
+### Sentiment scoring (`services/sentiment.py`)
+
+Sentiment is split by job (hybrid design): a deterministic **numeric score**
+drives decisions; the LLM produces **themes + narrative**. The Strategist
+depends only on the `SentimentProvider` interface (`SENTIMENT_PROVIDER` env).
+
+| Provider | Status | Score source |
+|---|---|---|
+| `SyntheticSentimentProvider` | **default, built** | tiny lexicon / pre-attached news score (offline) |
+| `ComprehendSentimentProvider` | **built, opt-in** | Amazon Comprehend `DetectTargetedSentiment` → per-ticker; falls back on error |
+
+Set `SENTIMENT_PROVIDER=comprehend` (needs `comprehend:DetectSentiment` /
+`DetectTargetedSentiment` on the role) to score real headline text. The
+per-ticker number stays deterministic and auditable — consistent with "the
+LLM proposes, deterministic gates dispose." Later: source real text via
+**Bedrock Knowledge Bases** (RAG), and optionally swap Comprehend for
+**FinBERT on SageMaker** if finance-specific accuracy becomes a differentiator.
+
 ---
 
 ## 6. Governance & guardrails (4 layers)

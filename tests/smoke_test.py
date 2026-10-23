@@ -53,6 +53,15 @@ def main() -> None:
     check("sentiment in range", -1.0 <= insight.sentiment_score <= 1.0)
     check("per-ticker sentiment present", len(insight.per_ticker_sentiment) > 0)
 
+    print("4b. SentimentProvider abstraction")
+    from services.sentiment import get_sentiment_provider, SyntheticSentimentProvider
+    sp = get_sentiment_provider()
+    check("default provider is synthetic offline", isinstance(sp, SyntheticSentimentProvider))
+    pos = sp.score("company beats and raises guidance, record growth")
+    neg = sp.score("company warns of margin pressure, downgrade and probe")
+    check("positive text scores > negative text", pos > neg)
+    check("scores within [-1,1]", -1.0 <= pos <= 1.0 and -1.0 <= neg <= 1.0)
+
     print("5. Inference engine (direct)")
     fcs = [Forecast(ticker="X", expected_return=0.1, lower=0.0, upper=0.2, volatility=0.25)]
     res = inference.run_inference(fcs, investable_budget=1_000_000, top_k=1)
