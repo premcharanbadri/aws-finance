@@ -191,14 +191,28 @@ def _synthesize(query, industry, proposal, insight, budget, reason) -> str:
         return get_client().generate(prompt, system=COORDINATOR_SYSTEM, max_tokens=400)
     except Exception:
         held = [p["ticker"] for p in _positions(proposal) if p.get("weight", 0) > 0]
-        names = ", ".join(held) if held else "no positions cleared the risk/return bar"
-        budget_str = f"USD {budget.investable_budget:,.0f}"
-        return (
-            f"Within the {industry} universe, the recommended allocation is {names}. "
-            f"Investable budget: {budget_str}. "
-            f"Backtest outcome: {reason}. "
-            f"(Narrative generated deterministically; live model narration was unavailable.)"
+        names = ", ".join(held) if held else "none — no positions cleared the risk/return bar"
+        verdict = (
+            "Proceed with the proposed allocation."
+            if held and budget.investable_budget > 0
+            else "Hold — do not deploy capital yet."
         )
+        lines = [
+            f"**Recommendation:** {verdict}",
+            "",
+            f"- **Universe:** {industry}",
+            f"- **Proposed allocation:** {names}",
+            f"- **Investable budget:** USD {budget.investable_budget:,.0f}",
+            f"- **Backtest:** {reason}",
+        ]
+        if budget.investable_budget <= 0:
+            lines.append(
+                "- **Note:** the Accounting & Liquidity Reviewer set the budget to "
+                "USD 0, so no capital is deployable this cycle."
+            )
+        lines.append("")
+        lines.append("_Narrative generated deterministically; live model narration was unavailable._")
+        return "\n".join(lines)
 
 
 def _positions(proposal: PortfolioProposal) -> list[dict[str, Any]]:

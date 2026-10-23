@@ -62,11 +62,11 @@ def panel_relationship_manager(rec):
     accepted = rec.accepted
     st.subheader("🤝 Relationship Manager")
 
-    # One-line verdict.
+    # One-line verdict badge.
     if accepted:
-        st.success("**Recommendation: PROCEED** — the proposal cleared the firm's review.")
+        st.success("**PROCEED** — the proposal cleared the firm's review.")
     else:
-        st.warning("**Recommendation: HOLD** — the proposal did not clear review. See why below.")
+        st.warning("**HOLD** — the proposal did not clear review (details below).")
 
     # Headline metrics.
     c1, c2, c3 = st.columns(3)
@@ -74,46 +74,38 @@ def panel_relationship_manager(rec):
     c2.metric("Revision rounds", rec.iterations)
     c3.metric("Investable budget", money(rec.budget.investable_budget))
 
-    # The narrative (short, clean — no appended noise).
-    held = _held_positions(rec)
-    if held:
-        tickers = ", ".join(p["ticker"] for p in held)
-        st.markdown(f"**Proposed allocation ({rec.industries[0] if rec.industries else 'market'}):** {tickers}")
-    st.write(safe(rec.rationale))
+    # The consolidated narrative (organized markdown from the orchestrator).
+    st.markdown(safe(rec.rationale))
 
-    # "Why" — the decision drivers, as short bullets.
-    with st.container():
-        st.markdown("**Why this decision**")
-        bullets = []
-        comp = getattr(rec, "comparison", {}) or {}
-        rev = (comp.get("revised") or {})
-        base = (comp.get("equal_weight_baseline") or {})
+    # Decision drivers from the backtest comparison, as a tidy block.
+    comp = getattr(rec, "comparison", {}) or {}
+    rev = comp.get("revised") or {}
+    base = comp.get("equal_weight_baseline") or {}
+    if rev.get("annual_return") is not None or base.get("annual_return") is not None:
+        st.markdown("**Decision drivers**")
         if rev.get("annual_return") is not None:
-            bullets.append(
-                f"Revised portfolio: **{rev['annual_return']:.1%}** annual return, "
-                f"**{rev['max_drawdown']:.1%}** max drawdown."
+            st.markdown(
+                f"- Revised portfolio — return **{rev['annual_return']:.1%}**, "
+                f"max drawdown **{rev['max_drawdown']:.1%}**"
             )
         if base.get("annual_return") is not None:
-            bullets.append(f"Equal-weight baseline: {base['annual_return']:.1%} return, "
-                           f"{base['max_drawdown']:.1%} max drawdown.")
-        if rec.budget.investable_budget <= 0:
-            bullets.append("Accounting review set the **investable budget to \\$0** "
-                           "(cash does not cover reserve + near-term obligations).")
-        for b in bullets:
-            st.markdown(f"- {b}")
+            st.markdown(
+                f"- Equal-weight baseline — return {base['annual_return']:.1%}, "
+                f"max drawdown {base['max_drawdown']:.1%}"
+            )
 
-    # Compact status callouts instead of a long paragraph.
+    # Compact status callouts.
     g = getattr(rec, "groundedness", {}) or {}
     cols = st.columns(2)
     with cols[0]:
         if g.get("passed", True):
             st.caption("✅ Groundedness check passed")
         else:
-            st.caption("❌ Groundedness issues: " + safe("; ".join(g.get("issues", []))))
+            st.caption("❌ Groundedness: " + safe("; ".join(g.get("issues", []))))
     with cols[1]:
         n = len(rec.budget.cpa_flags or [])
         if rec.cpa_review_required:
-            st.caption(f"🧾 Human CPA review required ({n} item{'s' if n != 1 else ''}) — see the Accounting view")
+            st.caption(f"🧾 Human CPA review required ({n} item{'s' if n != 1 else ''}) — see Accounting")
         else:
             st.caption("🧾 No human CPA review required")
 

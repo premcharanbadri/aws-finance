@@ -69,9 +69,9 @@ def _predict_one(ticker: str, data: DataProvider) -> Forecast:
         lower = float(out.get("lower", er - vol))
         upper = float(out.get("upper", er + vol))
         rationale = str(out.get("rationale", "baseline"))
-    except Exception as exc:
+    except Exception:
         er, lower, upper, rationale = base_er, base_er - vol, base_er + vol, (
-            f"baseline only ({exc.__class__.__name__})"
+            "Baseline statistical forecast (model narration unavailable)."
         )
 
     return Forecast(

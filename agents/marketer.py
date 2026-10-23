@@ -91,9 +91,14 @@ def research(
         out = get_client().generate_json(prompt, system=SYSTEM)
         themes = list(out.get("themes", []))
         summary = str(out.get("summary", ""))
-    except Exception as exc:
-        themes = ["sentiment aggregation only"]
-        summary = f"LLM unavailable ({exc.__class__.__name__}); aggregate sentiment {agg}."
+    except Exception:
+        themes = ["sentiment aggregation"]
+        tone = "bullish" if agg > 0.1 else "bearish" if agg < -0.1 else "neutral"
+        summary = (
+            f"Aggregate market sentiment for {industry} is {agg:+.2f} ({tone}), "
+            f"based on per-ticker sentiment aggregation. Narrative model "
+            f"narration was unavailable, so this is a data-only summary."
+        )
 
     return MarketInsight(
         sentiment_score=agg,
