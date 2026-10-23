@@ -4,19 +4,13 @@
 
 ##### The Contribution Cycle (Done by the Collaborator)
 
-Once accepted, use the terminal or a Git GUI to work safely without breaking the main codebase:
-1. Clone the repository to your local computer:bash
-git clone <REPOSITORY_URL>
-Use code with caution.
-2. Create a new branch for your specific feature or fix (never work directly on the main/master branch):bash
-git checkout -b feature-your-feature-name
-Use code with caution.
-3. Make your edits, stage, and commit them:bash
-git add .
-git commit -m "Brief description of changes made"
-Use code with caution.
-4. Push your branch to the remote GitHub repository:bash
-git push origin feature-your-feature-name
-Use code with caution.
-5. Open a Pull Request (PR): Go to the repository on GitHub. You will see a prompt saying "Compare & pull request". Click it, describe what you changed, and submit it for review.
-6. Merge: After code review and approvals, click Merge pull request to combine it into the main project.
+A Virtual Advisory Firm for Corporate Clients
+Our platform coordinates specialized AI agents to help companies align investment decisions with their financial needs and business strategy.
+1. Investment Analyst: Proposes a stock portfolio using historical prices and company financials.
+2. Market Strategist: Identifies important markets, growth opportunities, and business exposures.
+3. Accounting & Liquidity Reviewer: Reviews cash requirements, determines the available investment budget, and flags questions for a human CPA.
+4. Challenger: Finds weak assumptions, concentrated risks, and conflicts in the proposed portfolio.
+5. Relationship Manager: Coordinates the agents and delivers one consolidated recommendation.
+Workflow: Client profile → financial and market analysis → portfolio proposal → challenge and revision → historical backtest.
+Key differentiator: Each specialist’s findings directly influence the investment recommendation. We compare the original and revised portfolios against an equal-weight baseline using return and maximum drawdown.
+MVP stack: Streamlit, Python, Amazon Bedrock, Strands, and AgentCore.
