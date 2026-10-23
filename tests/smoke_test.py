@@ -95,7 +95,8 @@ def main() -> None:
     check("recommendation has disclaimer", bool(rec.disclaimer))
     check("iterations within cap", 1 <= rec.iterations <= 2)
     check("industries set", rec.industries == ["technology"])
-    check("groundedness recorded in rationale", "Groundedness" in rec.rationale)
+    check("groundedness recorded", isinstance(d.get("groundedness"), dict)
+          and "passed" in d["groundedness"])
     # Key differentiator: original vs revised vs equal-weight baseline.
     comp = d.get("comparison", {})
     check("comparison has all three legs",

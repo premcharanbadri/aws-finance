@@ -124,6 +124,7 @@ if _HAS_PYDANTIC:
         rationale: str = ""
         challenger_findings: list[str] = Field(default_factory=list)
         comparison: dict = Field(default_factory=dict)
+        groundedness: dict = Field(default_factory=dict)
 
 else:  # pragma: no cover - dataclass fallback mirrors the models above
 
@@ -194,6 +195,7 @@ else:  # pragma: no cover - dataclass fallback mirrors the models above
         rationale: str = ""
         challenger_findings: list = field(default_factory=list)
         comparison: dict = field(default_factory=dict)
+        groundedness: dict = field(default_factory=dict)
 
 
 def to_dict(model: Any) -> dict:

@@ -59,17 +59,63 @@ def _held_positions(rec):
 # Per-persona panels
 # ---------------------------------------------------------------------------
 def panel_relationship_manager(rec):
-    status = "✅ Accepted" if rec.accepted else "⚠️ Not accepted"
+    accepted = rec.accepted
     st.subheader("🤝 Relationship Manager")
-    st.markdown(f"**Decision:** {status}")
+
+    # One-line verdict.
+    if accepted:
+        st.success("**Recommendation: PROCEED** — the proposal cleared the firm's review.")
+    else:
+        st.warning("**Recommendation: HOLD** — the proposal did not clear review. See why below.")
+
+    # Headline metrics.
     c1, c2, c3 = st.columns(3)
-    c1.metric("Confidence", f"{rec.confidence:.2f}")
+    c1.metric("Confidence", f"{rec.confidence:.0%}")
     c2.metric("Revision rounds", rec.iterations)
     c3.metric("Investable budget", money(rec.budget.investable_budget))
-    st.markdown("**Recommendation**")
-    st.info(safe(rec.rationale))
-    if rec.cpa_review_required:
-        st.warning("🧾 Human CPA review required before acting.")
+
+    # The narrative (short, clean — no appended noise).
+    held = _held_positions(rec)
+    if held:
+        tickers = ", ".join(p["ticker"] for p in held)
+        st.markdown(f"**Proposed allocation ({rec.industries[0] if rec.industries else 'market'}):** {tickers}")
+    st.write(safe(rec.rationale))
+
+    # "Why" — the decision drivers, as short bullets.
+    with st.container():
+        st.markdown("**Why this decision**")
+        bullets = []
+        comp = getattr(rec, "comparison", {}) or {}
+        rev = (comp.get("revised") or {})
+        base = (comp.get("equal_weight_baseline") or {})
+        if rev.get("annual_return") is not None:
+            bullets.append(
+                f"Revised portfolio: **{rev['annual_return']:.1%}** annual return, "
+                f"**{rev['max_drawdown']:.1%}** max drawdown."
+            )
+        if base.get("annual_return") is not None:
+            bullets.append(f"Equal-weight baseline: {base['annual_return']:.1%} return, "
+                           f"{base['max_drawdown']:.1%} max drawdown.")
+        if rec.budget.investable_budget <= 0:
+            bullets.append("Accounting review set the **investable budget to \\$0** "
+                           "(cash does not cover reserve + near-term obligations).")
+        for b in bullets:
+            st.markdown(f"- {b}")
+
+    # Compact status callouts instead of a long paragraph.
+    g = getattr(rec, "groundedness", {}) or {}
+    cols = st.columns(2)
+    with cols[0]:
+        if g.get("passed", True):
+            st.caption("✅ Groundedness check passed")
+        else:
+            st.caption("❌ Groundedness issues: " + safe("; ".join(g.get("issues", []))))
+    with cols[1]:
+        n = len(rec.budget.cpa_flags or [])
+        if rec.cpa_review_required:
+            st.caption(f"🧾 Human CPA review required ({n} item{'s' if n != 1 else ''}) — see the Accounting view")
+        else:
+            st.caption("🧾 No human CPA review required")
 
 
 def panel_investment_analyst(rec):

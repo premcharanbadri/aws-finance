@@ -176,19 +176,27 @@ def review(
     rec: Recommendation,
     analyzed_tickers: list[str],
 ) -> Recommendation:
-    """Compliance gate: run groundedness checks, attach disclaimer, set CPA flag."""
+    """Compliance gate: run groundedness checks, attach disclaimer, set CPA flag.
+
+    The groundedness result and CPA flags are kept as STRUCTURED fields
+    (rec.groundedness, rec.budget.cpa_flags) so the UI can render them as
+    their own sections — we no longer concatenate them onto rec.rationale,
+    which kept the narrative short and readable.
+    """
     ground = evaluate_groundedness(rec.portfolio, rec.market, rec.budget, analyzed_tickers)
 
     rec.disclaimer = DISCLAIMER
     cpa_flags = list(getattr(rec.budget, "cpa_flags", []) or [])
     rec.cpa_review_required = bool(cpa_flags) or not ground["passed"]
 
-    note = f"Groundedness: {'PASS' if ground['passed'] else 'FAIL'}."
-    if ground["issues"]:
-        note += " Issues: " + "; ".join(ground["issues"])
-    if cpa_flags:
-        note += f" Human-CPA review required for: {cpa_flags}."
-    rec.rationale = (rec.rationale + " " + note).strip()
+    # Structured groundedness record (not appended to the narrative).
+    try:
+        rec.groundedness = {
+            "passed": ground["passed"],
+            "issues": ground["issues"],
+        }
+    except Exception:
+        pass
 
     # A failed groundedness check blocks acceptance regardless of backtest.
     if not ground["passed"]:
