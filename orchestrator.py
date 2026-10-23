@@ -47,17 +47,22 @@ COORDINATOR_SYSTEM = (
 def recommend(
     query: str,
     industry: str,
-    company: str = "AcmeCorp",
+    company: str = "YourCompany",
     data: DataProvider | None = None,
     max_iterations: int = 3,
     min_sharpe: float = 0.5,
+    financials: dict | None = None,
 ) -> Recommendation:
-    """Run the full multi-agent pipeline and return a gated Recommendation."""
+    """Run the full multi-agent pipeline and return a gated Recommendation.
+
+    `financials`: the company's real balance sheet (cash, liabilities,
+    obligations, covenant minimum). If omitted, the budget is illustrative.
+    """
     data = data or get_provider()
     universe = data.get_universe(industry)
 
     # --- Step 1: CPA runs first -> budget envelope (hard constraint) --------
-    budget = cpa.review(company, data)
+    budget = cpa.review(company, data, financials=financials)
 
     # --- Revision loop over the parallel branches ---------------------------
     analyst_guidance = ""

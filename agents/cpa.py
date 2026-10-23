@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Any
 
 from services.data import DataProvider
+from services.financials import get_financials as get_company_financials
 from services.llm import get_client
 from services.schemas import BudgetEnvelope
 
@@ -54,14 +55,24 @@ def review(
     company: str,
     data: DataProvider,
     guidance: str = "",
+    financials: dict[str, Any] | None = None,
 ) -> BudgetEnvelope:
-    """Produce a BudgetEnvelope. `guidance` carries Coordinator revision notes."""
-    fin = data.get_financials(company)
+    """Produce a BudgetEnvelope. `guidance` carries Coordinator revision notes.
+
+    `financials`: the company's real balance sheet (from the UI/API). If not
+    provided, falls back to a JSON file, then to a clearly-labeled illustrative
+    sample. Only the company knows its own numbers, so this is an input, not
+    something we fabricate silently.
+    """
+    fin_result = get_company_financials(company, explicit=financials)
+    fin = fin_result.data
+    company = fin_result.company
     calc = _deterministic_budget(fin)
 
     prompt = (
         f"Company: {company}\n"
         f"Financial snapshot (USD): {fin}\n"
+        f"Data is {'REAL (user-provided)' if fin_result.is_real else 'ILLUSTRATIVE SAMPLE (not the real company)'}.\n"
         f"Deterministic pre-computation: {calc}\n"
         f"{('Coordinator guidance: ' + guidance) if guidance else ''}\n\n"
         "Return JSON with keys: investable_budget (number, use the "
@@ -84,12 +95,19 @@ def review(
     # Never let the LLM exceed the deterministic cap.
     budget = min(float(out.get("investable_budget", calc["budget"])), calc["budget"])
 
+    cpa_flags = list(out.get("cpa_flags", []))
+    rationale = str(out.get("rationale", ""))
+    if not fin_result.is_real:
+        # Be explicit that the budget is not based on the real company.
+        cpa_flags = ["Budget is ILLUSTRATIVE - provide real company financials to make it actionable"] + cpa_flags
+        rationale = "[ILLUSTRATIVE budget - sample financials used] " + rationale
+
     return BudgetEnvelope(
         company=company,
         investable_budget=round(budget, 2),
         cash_available=calc["cash"],
         min_cash_buffer=calc["min_buffer"],
         liquidity_ok=bool(out.get("liquidity_ok", calc["liquidity_ok"])),
-        cpa_flags=list(out.get("cpa_flags", [])),
-        rationale=str(out.get("rationale", "")),
+        cpa_flags=cpa_flags,
+        rationale=rationale,
     )

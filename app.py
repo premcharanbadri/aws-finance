@@ -32,13 +32,35 @@ with st.sidebar:
     provider = get_provider()
     industries = sorted(_INDUSTRIES)
     industry = st.selectbox("Industry / market", industries, index=0)
-    company = st.text_input("Investing company", value="AcmeCorp")
+    company = st.text_input("Investing company", value="YourCompany")
     query = st.text_area(
         "Your question",
         value=f"Which {industry} names should we invest in this quarter?",
     )
     max_iter = st.slider("Max revision iterations", 1, 5, 3)
     min_sharpe = st.slider("Min acceptable Sharpe", 0.0, 2.0, 0.5, 0.1)
+
+    st.markdown("---")
+    st.subheader("Company financials (USD)")
+    st.caption(
+        "The budget is computed from YOUR company's numbers. Leave at 0 to get "
+        "an illustrative sample budget instead."
+    )
+    cash = st.number_input("Cash & equivalents", min_value=0.0, value=0.0, step=1_000_000.0, format="%.0f")
+    cur_liab = st.number_input("Current liabilities", min_value=0.0, value=0.0, step=1_000_000.0, format="%.0f")
+    obligations = st.number_input("Existing obligations", min_value=0.0, value=0.0, step=500_000.0, format="%.0f")
+    covenant_min = st.number_input("Debt covenant min cash", min_value=0.0, value=0.0, step=500_000.0, format="%.0f")
+
+    financials = None
+    if cash > 0:
+        financials = {
+            "cash_and_equivalents": cash,
+            "current_liabilities": cur_liab,
+            "existing_obligations": obligations,
+            "debt_covenant_min_cash": covenant_min,
+            "current_assets": cash + cur_liab,  # conservative if not itemized
+        }
+
     st.caption(f"Data provider: `{os.getenv('DATA_PROVIDER', 'synthetic')}`")
     run = st.button("Generate recommendation", type="primary")
 
@@ -47,6 +69,7 @@ if run:
         rec = orchestrator.recommend(
             query,
             industry=industry,
+            financials=financials,
             company=company,
             max_iterations=max_iter,
             min_sharpe=min_sharpe,
