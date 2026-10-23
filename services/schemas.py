@@ -48,6 +48,7 @@ if _HAS_PYDANTIC:
         confidence: float = 0.0
         expected_return: float = 0.0
         volatility: float = 0.0
+        dollars: float = 0.0
         rationale: str = ""
 
     class PortfolioProposal(BaseModel):
@@ -137,6 +138,7 @@ else:  # pragma: no cover - dataclass fallback mirrors the models above
         confidence: float = 0.0
         expected_return: float = 0.0
         volatility: float = 0.0
+        dollars: float = 0.0
         rationale: str = ""
 
     @dataclass

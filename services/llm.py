@@ -17,7 +17,10 @@ from typing import Any
 
 import boto3
 
-DEFAULT_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "us.openai.gpt-5.6-luna")
+# Default model: verified live in this account via Bedrock Converse. The
+# hackathon-kit's GPT profiles were not available here (end-of-life / not
+# provisioned), so we default to Llama 3.3 70B. Override with BEDROCK_MODEL_ID.
+DEFAULT_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "us.meta.llama3-3-70b-instruct-v1:0")
 DEFAULT_REGION = os.getenv("AWS_REGION", "us-east-1")
 
 
@@ -95,10 +98,40 @@ def _parse_json_lenient(raw: str) -> dict[str, Any]:
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        start, end = text.find("{"), text.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            return json.loads(text[start : end + 1])
-        raise
+        pass
+    # Models often wrap JSON in prose or extra text. Extract the first
+    # balanced {...} object by brace-matching (handles nested braces).
+    obj = _extract_first_object(text)
+    if obj is not None:
+        try:
+            return json.loads(obj)
+        except json.JSONDecodeError:
+            # Last resort: tolerate single-quoted JSON (e.g. Python-style).
+            import ast
+
+            try:
+                result = ast.literal_eval(obj)
+                if isinstance(result, dict):
+                    return result
+            except (ValueError, SyntaxError):
+                pass
+    raise json.JSONDecodeError("no JSON object found in model output", text, 0)
+
+
+def _extract_first_object(text: str) -> str | None:
+    """Return the first balanced {...} substring, or None."""
+    start = text.find("{")
+    if start == -1:
+        return None
+    depth = 0
+    for i in range(start, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+    return None
 
 
 # Module-level singleton for convenience in agents/services.

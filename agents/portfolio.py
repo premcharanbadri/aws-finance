@@ -134,5 +134,5 @@ def _accepts_kwargs(cls, data: dict) -> bool:
 
 def _coerce(p: dict[str, Any]) -> PositionProposal:
     """Build a PositionProposal from a superset dict (drops extra keys)."""
-    allowed = {"ticker", "weight", "score", "confidence", "expected_return", "volatility", "rationale"}
+    allowed = {"ticker", "weight", "score", "confidence", "expected_return", "volatility", "dollars", "rationale"}
     return PositionProposal(**{k: v for k, v in p.items() if k in allowed})
