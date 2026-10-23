@@ -1,0 +1,11 @@
+ticker_id,symbol,sector,regions,tags,note
+T01,MSFT,Information Technology,US|Europe|Asia,cloud_spend|ai_capex,"UNVERIFIED placeholder, human must check"
+T02,NVDA,Information Technology,US|Asia,ai_capex|cloud_spend,"UNVERIFIED placeholder, human must check"
+T03,JPM,Financials,US,rate_sensitive|credit_cycle,"UNVERIFIED placeholder, human must check"
+T04,XOM,Energy,US|Europe,energy_price_sensitive|commodity_input,"UNVERIFIED placeholder, human must check"
+T05,UNH,Health Care,US,healthcare_demand|defensive_staples,"UNVERIFIED placeholder, human must check"
+T06,AMZN,Consumer Discretionary,US|Europe|Asia,consumer_discretionary|cloud_spend,"UNVERIFIED placeholder, human must check"
+T07,PG,Consumer Staples,US|Europe|Asia,defensive_staples,"UNVERIFIED placeholder, human must check"
+T08,CAT,Industrials,US|China|Europe,commodity_input|china_exposure,"UNVERIFIED placeholder, human must check"
+T09,NEE,Utilities,US,rate_sensitive|defensive_staples,"UNVERIFIED placeholder, human must check"
+T10,GOOGL,Communication Services,US|Europe|Asia,ai_capex|consumer_discretionary,"UNVERIFIED placeholder, human must check"

@@ -1,0 +1,30 @@
+{
+  "_note": "UNVERIFIED synthetic exposure overlay for the Market Strategist. One entry per client_id in client_profiles.json. A human must review every field before use. Do NOT treat as real client data.",
+  "acme": {
+    "synthetic": true,
+    "revenue_regions": {"US": 0.70, "Europe": 0.20, "Asia": 0.10},
+    "supplier_regions": {"US": 0.50, "Asia": 0.50},
+    "currency_exposure": ["USD", "EUR"],
+    "rate_sensitivity": "medium",
+    "strategy_notes": "UNVERIFIED placeholder, human must check. Diversified mid-market operator; moderate reinvestment, some import exposure.",
+    "business_tags": ["cloud_spend", "consumer_discretionary", "rate_sensitive"]
+  },
+  "tight": {
+    "synthetic": true,
+    "revenue_regions": {"US": 0.95, "Europe": 0.05},
+    "supplier_regions": {"US": 0.30, "China": 0.70},
+    "currency_exposure": ["USD", "CNY"],
+    "rate_sensitivity": "high",
+    "strategy_notes": "UNVERIFIED placeholder, human must check. Thin liquidity and near-term obligations; highly sensitive to funding cost and input prices.",
+    "business_tags": ["rate_sensitive", "energy_price_sensitive", "china_exposure", "commodity_input"]
+  },
+  "flush": {
+    "synthetic": true,
+    "revenue_regions": {"US": 0.40, "Europe": 0.35, "Asia": 0.25},
+    "supplier_regions": {"Europe": 0.60, "US": 0.40},
+    "currency_exposure": ["USD", "EUR", "JPY"],
+    "rate_sensitivity": "low",
+    "strategy_notes": "UNVERIFIED placeholder, human must check. Well-capitalized, long horizon; global footprint with defensive and healthcare demand exposure.",
+    "business_tags": ["defensive_staples", "healthcare_demand", "europe_exposure", "ai_capex"]
+  }
+}
