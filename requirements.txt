@@ -1,0 +1,6 @@
+streamlit>=1.40,<2
+pandas>=2.2,<3
+numpy>=1.26,<3
+pydantic>=2.8,<3
+boto3>=1.35,<2
+strands-agents>=1.30,<2

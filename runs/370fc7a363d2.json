@@ -1,0 +1,1912 @@
+{
+  "run_id": "370fc7a363d2",
+  "created_at": "2026-10-23T18:46:18.577316+00:00",
+  "mode": "bedrock",
+  "model_settings": {
+    "region": "us-east-1",
+    "model_id": "amazon.nova-lite-v1:0"
+  },
+  "context": {
+    "client": {
+      "name": "Demo Manufacturing",
+      "cash": 1000000.0,
+      "monthly_outflow": 100000.0,
+      "reserve_months": 6,
+      "commitments": 200000.0,
+      "business_description": "Synthetic manufacturing client considering market expansion. No verified customer-market research has been supplied.",
+      "overlap_tickers": [],
+      "overlap_review_threshold": 0.45
+    },
+    "universe": [
+      "AAPL",
+      "MSFT",
+      "AMZN",
+      "JPM",
+      "XOM",
+      "JNJ"
+    ],
+    "max_weight": 0.3,
+    "cutoff_date": "2016-12-30",
+    "evidence": [
+      {
+        "evidence_id": "client_profile",
+        "source": "Synthetic user-provided demo profile",
+        "description": {
+          "name": "Demo Manufacturing",
+          "cash": 1000000.0,
+          "monthly_outflow": 100000.0,
+          "reserve_months": 6,
+          "commitments": 200000.0,
+          "business_description": "Synthetic manufacturing client considering market expansion. No verified customer-market research has been supplied.",
+          "overlap_tickers": [],
+          "overlap_review_threshold": 0.45
+        }
+      },
+      {
+        "evidence_id": "price_AAPL",
+        "ticker": "AAPL",
+        "source": "Kaggle S&P 500 historical prices",
+        "available_through": "2016-12-30",
+        "research_start": "2015-12-31",
+        "return_20_sessions": 0.05781349894967569,
+        "window_return": 0.10032300969029051,
+        "annualized_volatility": 0.23369904588539547,
+        "historical_max_drawdown": -0.19411239964317561
+      },
+      {
+        "evidence_id": "price_MSFT",
+        "ticker": "MSFT",
+        "source": "Kaggle S&P 500 historical prices",
+        "available_through": "2016-12-30",
+        "research_start": "2015-12-31",
+        "return_20_sessions": 0.049662162162162016,
+        "window_return": 0.1200432588320115,
+        "annualized_volatility": 0.22692547935405663,
+        "historical_max_drawdown": -0.14222458377612468
+      },
+      {
+        "evidence_id": "price_AMZN",
+        "ticker": "AMZN",
+        "source": "Kaggle S&P 500 historical prices",
+        "available_through": "2016-12-30",
+        "research_start": "2015-12-31",
+        "return_20_sessions": 0.008364149801654008,
+        "window_return": 0.1094556806580953,
+        "annualized_volatility": 0.29702631621489806,
+        "historical_max_drawdown": -0.2867626388909438
+      },
+      {
+        "evidence_id": "price_JPM",
+        "ticker": "JPM",
+        "source": "Kaggle S&P 500 historical prices",
+        "available_through": "2016-12-30",
+        "research_start": "2015-12-31",
+        "return_20_sessions": 0.05501895097200138,
+        "window_return": 0.3068302286839317,
+        "annualized_volatility": 0.24805334882136953,
+        "historical_max_drawdown": -0.1962744207178555
+      },
+      {
+        "evidence_id": "price_XOM",
+        "ticker": "XOM",
+        "source": "Kaggle S&P 500 historical prices",
+        "available_through": "2016-12-30",
+        "research_start": "2015-12-31",
+        "return_20_sessions": 0.03461714809720329,
+        "window_return": 0.15792174470814624,
+        "annualized_volatility": 0.1930118115127649,
+        "historical_max_drawdown": -0.13225399495374257
+      },
+      {
+        "evidence_id": "price_JNJ",
+        "ticker": "JNJ",
+        "source": "Kaggle S&P 500 historical prices",
+        "available_through": "2016-12-30",
+        "research_start": "2015-12-31",
+        "return_20_sessions": 0.034386783982761626,
+        "window_return": 0.12159267912772576,
+        "annualized_volatility": 0.13525565994897926,
+        "historical_max_drawdown": -0.11491228070175452
+      }
+    ],
+    "correlations": {
+      "AAPL": {
+        "AAPL": 1.0,
+        "MSFT": 0.48885923326914543,
+        "AMZN": 0.3529914502495947,
+        "JPM": 0.34470305319752587,
+        "XOM": 0.2698975661629465,
+        "JNJ": 0.2626230906564314
+      },
+      "MSFT": {
+        "AAPL": 0.48885923326914543,
+        "MSFT": 1.0,
+        "AMZN": 0.4938699146676212,
+        "JPM": 0.4414255502000512,
+        "XOM": 0.2852180716239319,
+        "JNJ": 0.3355645501533031
+      },
+      "AMZN": {
+        "AAPL": 0.3529914502495947,
+        "MSFT": 0.4938699146676212,
+        "AMZN": 1.0,
+        "JPM": 0.2535008726428952,
+        "XOM": 0.24188544675491766,
+        "JNJ": 0.2666024242912113
+      },
+      "JPM": {
+        "AAPL": 0.34470305319752587,
+        "MSFT": 0.4414255502000512,
+        "AMZN": 0.2535008726428952,
+        "JPM": 1.0,
+        "XOM": 0.4781582001379785,
+        "JNJ": 0.36072951418276306
+      },
+      "XOM": {
+        "AAPL": 0.2698975661629465,
+        "MSFT": 0.2852180716239319,
+        "AMZN": 0.24188544675491766,
+        "JPM": 0.4781582001379785,
+        "XOM": 1.0,
+        "JNJ": 0.41144834187789214
+      },
+      "JNJ": {
+        "AAPL": 0.2626230906564314,
+        "MSFT": 0.3355645501533031,
+        "AMZN": 0.2666024242912113,
+        "JPM": 0.36072951418276306,
+        "XOM": 0.41144834187789214,
+        "JNJ": 1.0
+      }
+    }
+  },
+  "audit": {
+    "source": "Kaggle S&P 500 historical prices",
+    "price_sha256": "6aea253cd19de60b568143991aaf1fa482456565c389205658d236e595e716cf",
+    "dropped_incomplete_dates": 0,
+    "research_sessions": 253,
+    "evaluation_sessions": 251,
+    "entry_date": "2017-01-03",
+    "end_date": "2017-12-29",
+    "supplemental": {
+      "included": 0,
+      "excluded_after_cutoff": 0
+    },
+    "synthetic_prices": false
+  },
+  "events": [
+    "Market strategist analyzing client context",
+    "Accounting reviewer calculating protected cash and investment sleeve",
+    "Portfolio generator proposing the initial allocation",
+    "Independent reviewer checking allocation and supporting evidence",
+    "Allocations frozen; evaluator now reads held-out prices",
+    "Historical evaluation complete; results do not establish future performance"
+  ],
+  "status": "complete",
+  "marketing": {
+    "summary": "Demo Manufacturing is a synthetic manufacturing client considering market expansion. The portfolio universe includes AAPL, MSFT, AMZN, JPM, XOM, and JNJ. Financial metrics and historical returns are available, but specific market research is not provided. Priority markets cannot be identified due to missing market research.",
+    "priority_markets": [],
+    "portfolio_implications": [
+      "Diversification across multiple sectors is recommended.",
+      "Consider sectors related to manufacturing and potential growth areas."
+    ],
+    "evidence_ids": [
+      "client_profile",
+      "price_AAPL",
+      "price_MSFT",
+      "price_AMZN",
+      "price_JPM",
+      "price_XOM",
+      "price_JNJ"
+    ],
+    "missing_information": [
+      "Specific market research data for manufacturing and growth areas."
+    ]
+  },
+  "accounting": {
+    "summary": "Demo Manufacturing has a cash balance of $1,000,000.00 with a monthly outflow of $100,000.00. A reserve of 6 months has been set, leading to a protected cash amount of $600,000.00. Commitments of $200,000.00 have been accounted for, leaving an investable budget of $200,000.00. No funding shortfall has been computed.",
+    "review_questions": [
+      "Can you confirm the accuracy of the monthly outflow amount of $100,000.00?",
+      "Are there any additional commitments or liabilities not included in the $200,000.00?",
+      "Can you provide more details about the business operations and market conditions that led to the 6-month reserve decision?",
+      "Is there any expected change in the monthly outflow or additional commitments in the near future?"
+    ],
+    "protected_cash": 600000.0,
+    "committed_cash": 200000.0,
+    "investable_budget": 200000.0,
+    "funding_shortfall": 0.0
+  },
+  "initial": {
+    "weights": {
+      "MSFT": 0.25,
+      "AAPL": 0.25,
+      "AMZN": 0.25,
+      "JPM": 0.15,
+      "XOM": 0.075,
+      "JNJ": 0.025
+    },
+    "rationale": [
+      {
+        "ticker": "AAPL",
+        "reason": "High window return and reasonable volatility.",
+        "evidence_ids": [
+          "price_AAPL"
+        ]
+      },
+      {
+        "ticker": "MSFT",
+        "reason": "Strong performance with a balanced risk profile.",
+        "evidence_ids": [
+          "price_MSFT"
+        ]
+      },
+      {
+        "ticker": "AMZN",
+        "reason": "Good growth potential despite higher volatility.",
+        "evidence_ids": [
+          "price_AMZN"
+        ]
+      },
+      {
+        "ticker": "JPM",
+        "reason": "Solid performance with moderate risk.",
+        "evidence_ids": [
+          "price_JPM"
+        ]
+      },
+      {
+        "ticker": "XOM",
+        "reason": "Stable returns with lower volatility.",
+        "evidence_ids": [
+          "price_XOM"
+        ]
+      },
+      {
+        "ticker": "JNJ",
+        "reason": "Low risk and steady returns.",
+        "evidence_ids": [
+          "price_JNJ"
+        ]
+      }
+    ],
+    "responses_to_review": []
+  },
+  "initial_errors": [],
+  "initial_review": {
+    "verdict": "accept",
+    "summary": "Portfolio review for Demo Manufacturing",
+    "findings": [
+      {
+        "finding_id": "F1",
+        "severity": "minor",
+        "issue": "No material concerns. The portfolio is well-diversified and the weights are consistent with the historical performance and risk profiles of the stocks. The investable budget is fully utilized.",
+        "evidence_ids": [
+          "client_profile",
+          "price_AAPL",
+          "price_MSFT",
+          "price_AMZN",
+          "price_JPM",
+          "price_XOM",
+          "price_JNJ"
+        ],
+        "requested_change": ""
+      }
+    ]
+  },
+  "revised": false,
+  "final": {
+    "weights": {
+      "MSFT": 0.25,
+      "AAPL": 0.25,
+      "AMZN": 0.25,
+      "JPM": 0.15,
+      "XOM": 0.075,
+      "JNJ": 0.025
+    },
+    "rationale": [
+      {
+        "ticker": "AAPL",
+        "reason": "High window return and reasonable volatility.",
+        "evidence_ids": [
+          "price_AAPL"
+        ]
+      },
+      {
+        "ticker": "MSFT",
+        "reason": "Strong performance with a balanced risk profile.",
+        "evidence_ids": [
+          "price_MSFT"
+        ]
+      },
+      {
+        "ticker": "AMZN",
+        "reason": "Good growth potential despite higher volatility.",
+        "evidence_ids": [
+          "price_AMZN"
+        ]
+      },
+      {
+        "ticker": "JPM",
+        "reason": "Solid performance with moderate risk.",
+        "evidence_ids": [
+          "price_JPM"
+        ]
+      },
+      {
+        "ticker": "XOM",
+        "reason": "Stable returns with lower volatility.",
+        "evidence_ids": [
+          "price_XOM"
+        ]
+      },
+      {
+        "ticker": "JNJ",
+        "reason": "Low risk and steady returns.",
+        "evidence_ids": [
+          "price_JNJ"
+        ]
+      }
+    ],
+    "responses_to_review": []
+  },
+  "final_errors": [],
+  "final_review": {
+    "verdict": "accept",
+    "summary": "Portfolio review for Demo Manufacturing",
+    "findings": [
+      {
+        "finding_id": "F1",
+        "severity": "minor",
+        "issue": "No material concerns. The portfolio is well-diversified and the weights are consistent with the historical performance and risk profiles of the stocks. The investable budget is fully utilized.",
+        "evidence_ids": [
+          "client_profile",
+          "price_AAPL",
+          "price_MSFT",
+          "price_AMZN",
+          "price_JPM",
+          "price_XOM",
+          "price_JNJ"
+        ],
+        "requested_change": ""
+      }
+    ]
+  },
+  "evaluation": {
+    "curves": [
+      {
+        "date": "2017-01-03",
+        "Equal weight": 199800.00000000006,
+        "Reviewed": 199800.0,
+        "Initial": 199800.0
+      },
+      {
+        "date": "2017-01-04",
+        "Equal weight": 199225.66587189297,
+        "Reviewed": 199470.2253713537,
+        "Initial": 199470.2253713537
+      },
+      {
+        "date": "2017-01-05",
+        "Equal weight": 199974.46331745377,
+        "Reviewed": 200822.57875958446,
+        "Initial": 200822.57875958446
+      },
+      {
+        "date": "2017-01-06",
+        "Equal weight": 201145.6493647374,
+        "Reviewed": 202813.6260184544,
+        "Initial": 202813.6260184544
+      },
+      {
+        "date": "2017-01-09",
+        "Equal weight": 200872.19593273403,
+        "Reviewed": 202959.12030752376,
+        "Initial": 202959.12030752376
+      },
+      {
+        "date": "2017-01-10",
+        "Equal weight": 200505.1529640525,
+        "Reviewed": 202824.87517344515,
+        "Initial": 202824.87517344515
+      },
+      {
+        "date": "2017-01-11",
+        "Equal weight": 201289.27423142307,
+        "Reviewed": 204068.59460653245,
+        "Initial": 204068.59460653245
+      },
+      {
+        "date": "2017-01-12",
+        "Equal weight": 200958.77536927845,
+        "Reviewed": 203988.74365169115,
+        "Initial": 203988.74365169115
+      },
+      {
+        "date": "2017-01-13",
+        "Equal weight": 201274.6219018576,
+        "Reviewed": 204361.06522649093,
+        "Initial": 204361.06522649093
+      },
+      {
+        "date": "2017-01-17",
+        "Equal weight": 200376.6940265174,
+        "Reviewed": 203242.35586832024,
+        "Initial": 203242.35586832024
+      },
+      {
+        "date": "2017-01-18",
+        "Equal weight": 199963.2178201952,
+        "Reviewed": 203014.2569739521,
+        "Initial": 203014.2569739521
+      },
+      {
+        "date": "2017-01-19",
+        "Equal weight": 198909.57752655054,
+        "Reviewed": 202370.70596283922,
+        "Initial": 202370.70596283922
+      },
+      {
+        "date": "2017-01-20",
+        "Equal weight": 199727.28420843903,
+        "Reviewed": 203085.67442658977,
+        "Initial": 203085.67442658977
+      },
+      {
+        "date": "2017-01-23",
+        "Equal weight": 199898.45293415352,
+        "Reviewed": 203780.3244649866,
+        "Initial": 203780.3244649866
+      },
+      {
+        "date": "2017-01-24",
+        "Equal weight": 200177.8621711298,
+        "Reviewed": 204756.30321639508,
+        "Initial": 204756.30321639508
+      },
+      {
+        "date": "2017-01-25",
+        "Equal weight": 202323.3526759359,
+        "Reviewed": 207174.7084807982,
+        "Initial": 207174.7084807982
+      },
+      {
+        "date": "2017-01-26",
+        "Equal weight": 202864.8588120056,
+        "Reviewed": 208094.58628913385,
+        "Initial": 208094.58628913385
+      },
+      {
+        "date": "2017-01-27",
+        "Equal weight": 204000.3218817032,
+        "Reviewed": 209193.5338681052,
+        "Initial": 209193.5338681052
+      },
+      {
+        "date": "2017-01-30",
+        "Equal weight": 202670.96468373213,
+        "Reviewed": 207752.71460311514,
+        "Initial": 207752.71460311514
+      },
+      {
+        "date": "2017-01-31",
+        "Equal weight": 201175.065001356,
+        "Reviewed": 206156.1200804452,
+        "Initial": 206156.1200804452
+      },
+      {
+        "date": "2017-02-01",
+        "Equal weight": 202887.52738899927,
+        "Reviewed": 209024.74034195553,
+        "Initial": 209024.74034195553
+      },
+      {
+        "date": "2017-02-02",
+        "Equal weight": 203089.2425827481,
+        "Reviewed": 209081.62950110642,
+        "Initial": 209081.62950110642
+      },
+      {
+        "date": "2017-02-03",
+        "Equal weight": 203245.66682284418,
+        "Reviewed": 208661.2391889078,
+        "Initial": 208661.2391889078
+      },
+      {
+        "date": "2017-02-06",
+        "Equal weight": 203148.40075722028,
+        "Reviewed": 208790.86928537625,
+        "Initial": 208790.86928537625
+      },
+      {
+        "date": "2017-02-07",
+        "Equal weight": 203412.96106143043,
+        "Reviewed": 209375.85167741965,
+        "Initial": 209375.85167741965
+      },
+      {
+        "date": "2017-02-08",
+        "Equal weight": 203044.09858423728,
+        "Reviewed": 209523.93952198979,
+        "Initial": 209523.93952198979
+      },
+      {
+        "date": "2017-02-09",
+        "Equal weight": 204409.81424396407,
+        "Reviewed": 210886.1076752553,
+        "Initial": 210886.1076752553
+      },
+      {
+        "date": "2017-02-10",
+        "Equal weight": 205067.64516713802,
+        "Reviewed": 211206.8999278207,
+        "Initial": 211206.8999278207
+      },
+      {
+        "date": "2017-02-13",
+        "Equal weight": 206985.8053518725,
+        "Reviewed": 213387.70897712273,
+        "Initial": 213387.70897712273
+      },
+      {
+        "date": "2017-02-14",
+        "Equal weight": 208006.09196191162,
+        "Reviewed": 214478.1465185439,
+        "Initial": 214478.1465185439
+      },
+      {
+        "date": "2017-02-15",
+        "Equal weight": 209163.33011538364,
+        "Reviewed": 215521.30021087918,
+        "Initial": 215521.30021087918
+      },
+      {
+        "date": "2017-02-16",
+        "Equal weight": 209089.30886273374,
+        "Reviewed": 215413.34070839587,
+        "Initial": 215413.34070839587
+      },
+      {
+        "date": "2017-02-17",
+        "Equal weight": 209202.97821775745,
+        "Reviewed": 215557.5942175965,
+        "Initial": 215557.5942175965
+      },
+      {
+        "date": "2017-02-21",
+        "Equal weight": 210492.50267843113,
+        "Reviewed": 216952.74903089894,
+        "Initial": 216952.74903089894
+      },
+      {
+        "date": "2017-02-22",
+        "Equal weight": 210131.32139295762,
+        "Reviewed": 216823.16354917173,
+        "Initial": 216823.16354917173
+      },
+      {
+        "date": "2017-02-23",
+        "Equal weight": 210917.09633200738,
+        "Reviewed": 216812.7901877547,
+        "Initial": 216812.7901877547
+      },
+      {
+        "date": "2017-02-24",
+        "Equal weight": 210381.51579226117,
+        "Reviewed": 216062.22540402727,
+        "Initial": 216062.22540402727
+      },
+      {
+        "date": "2017-02-27",
+        "Equal weight": 210513.46757581708,
+        "Reviewed": 216188.3539205723,
+        "Initial": 216188.3539205723
+      },
+      {
+        "date": "2017-02-28",
+        "Equal weight": 210175.88910948418,
+        "Reviewed": 215796.83475558582,
+        "Initial": 215796.83475558582
+      },
+      {
+        "date": "2017-03-01",
+        "Equal weight": 214079.48803130834,
+        "Reviewed": 219675.35304448352,
+        "Initial": 219675.35304448352
+      },
+      {
+        "date": "2017-03-02",
+        "Equal weight": 212641.52587336555,
+        "Reviewed": 217834.36548854518,
+        "Initial": 217834.36548854518
+      },
+      {
+        "date": "2017-03-03",
+        "Equal weight": 213037.37768834626,
+        "Reviewed": 218538.0223682518,
+        "Initial": 218538.0223682518
+      },
+      {
+        "date": "2017-03-06",
+        "Equal weight": 212554.01459596216,
+        "Reviewed": 217903.25024175076,
+        "Initial": 217903.25024175076
+      },
+      {
+        "date": "2017-03-07",
+        "Equal weight": 212374.9541074074,
+        "Reviewed": 217824.16111236857,
+        "Initial": 217824.16111236857
+      },
+      {
+        "date": "2017-03-08",
+        "Equal weight": 212193.12872380222,
+        "Reviewed": 218065.6485223755,
+        "Initial": 218065.6485223755
+      },
+      {
+        "date": "2017-03-09",
+        "Equal weight": 212977.216005852,
+        "Reviewed": 218195.1712619786,
+        "Initial": 218195.1712619786
+      },
+      {
+        "date": "2017-03-10",
+        "Equal weight": 213133.71280308135,
+        "Reviewed": 218418.52222043203,
+        "Initial": 218418.52222043203
+      },
+      {
+        "date": "2017-03-13",
+        "Equal weight": 213223.99712714463,
+        "Reviewed": 218426.32009430832,
+        "Initial": 218426.32009430832
+      },
+      {
+        "date": "2017-03-14",
+        "Equal weight": 212919.2187655052,
+        "Reviewed": 217956.62529197405,
+        "Initial": 217956.62529197405
+      },
+      {
+        "date": "2017-03-15",
+        "Equal weight": 214544.11108532295,
+        "Reviewed": 219213.8003937717,
+        "Initial": 219213.8003937717
+      },
+      {
+        "date": "2017-03-16",
+        "Equal weight": 214418.95751410892,
+        "Reviewed": 219213.79499141133,
+        "Initial": 219213.79499141133
+      },
+      {
+        "date": "2017-03-17",
+        "Equal weight": 213784.50008667161,
+        "Reviewed": 218664.15656220485,
+        "Initial": 218664.15656220485
+      },
+      {
+        "date": "2017-03-20",
+        "Equal weight": 214198.50765124615,
+        "Reviewed": 219430.1693905026,
+        "Initial": 219430.1693905026
+      },
+      {
+        "date": "2017-03-21",
+        "Equal weight": 211436.69589246836,
+        "Reviewed": 216275.7653574956,
+        "Initial": 216275.7653574956
+      },
+      {
+        "date": "2017-03-22",
+        "Equal weight": 212283.95754561556,
+        "Reviewed": 217925.71719293852,
+        "Initial": 217925.71719293852
+      },
+      {
+        "date": "2017-03-23",
+        "Equal weight": 211905.12963525995,
+        "Reviewed": 217490.7809164697,
+        "Initial": 217490.7809164697
+      },
+      {
+        "date": "2017-03-24",
+        "Equal weight": 211415.45398306445,
+        "Reviewed": 217184.52366858828,
+        "Initial": 217184.52366858828
+      },
+      {
+        "date": "2017-03-27",
+        "Equal weight": 211681.80723586684,
+        "Reviewed": 217463.62703114087,
+        "Initial": 217463.62703114087
+      },
+      {
+        "date": "2017-03-28",
+        "Equal weight": 213720.77230933186,
+        "Reviewed": 220037.92759240285,
+        "Initial": 220037.92759240285
+      },
+      {
+        "date": "2017-03-29",
+        "Equal weight": 214444.9903499976,
+        "Reviewed": 221417.77379687675,
+        "Initial": 221417.77379687675
+      },
+      {
+        "date": "2017-03-30",
+        "Equal weight": 215438.37926050645,
+        "Reviewed": 222188.39089624782,
+        "Initial": 222188.39089624782
+      },
+      {
+        "date": "2017-03-31",
+        "Equal weight": 214786.38325607128,
+        "Reviewed": 222175.79046064103,
+        "Initial": 222175.79046064103
+      },
+      {
+        "date": "2017-04-03",
+        "Equal weight": 214792.55576095908,
+        "Reviewed": 222180.93238149234,
+        "Initial": 222180.93238149234
+      },
+      {
+        "date": "2017-04-04",
+        "Equal weight": 215898.87104929463,
+        "Reviewed": 223776.977786167,
+        "Initial": 223776.977786167
+      },
+      {
+        "date": "2017-04-05",
+        "Equal weight": 215367.1942980048,
+        "Reviewed": 223127.87752292835,
+        "Initial": 223127.87752292835
+      },
+      {
+        "date": "2017-04-06",
+        "Equal weight": 215226.85603433027,
+        "Reviewed": 222569.27215881005,
+        "Initial": 222569.27215881005
+      },
+      {
+        "date": "2017-04-07",
+        "Equal weight": 214714.7921899523,
+        "Reviewed": 222016.51542035473,
+        "Initial": 222016.51542035473
+      },
+      {
+        "date": "2017-04-10",
+        "Equal weight": 214977.81526714453,
+        "Reviewed": 222562.51294965338,
+        "Initial": 222562.51294965338
+      },
+      {
+        "date": "2017-04-11",
+        "Equal weight": 214104.9063065887,
+        "Reviewed": 221445.63813870313,
+        "Initial": 221445.63813870313
+      },
+      {
+        "date": "2017-04-12",
+        "Equal weight": 214010.62958241173,
+        "Reviewed": 220871.86648798117,
+        "Initial": 220871.86648798117
+      },
+      {
+        "date": "2017-04-13",
+        "Equal weight": 212167.27523646274,
+        "Reviewed": 218987.40735160158,
+        "Initial": 218987.40735160158
+      },
+      {
+        "date": "2017-04-17",
+        "Equal weight": 214165.08863266898,
+        "Reviewed": 221408.73428930665,
+        "Initial": 221408.73428930665
+      },
+      {
+        "date": "2017-04-18",
+        "Equal weight": 212433.14734794712,
+        "Reviewed": 220688.5515735986,
+        "Initial": 220688.5515735986
+      },
+      {
+        "date": "2017-04-19",
+        "Equal weight": 211293.70575265933,
+        "Reviewed": 219529.78884090146,
+        "Initial": 219529.78884090146
+      },
+      {
+        "date": "2017-04-20",
+        "Equal weight": 212919.79057262326,
+        "Reviewed": 221325.17096369312,
+        "Initial": 221325.17096369312
+      },
+      {
+        "date": "2017-04-21",
+        "Equal weight": 212651.92637672494,
+        "Reviewed": 221325.08707169228,
+        "Initial": 221325.08707169228
+      },
+      {
+        "date": "2017-04-24",
+        "Equal weight": 215654.67689398376,
+        "Reviewed": 224546.5441196378,
+        "Initial": 224546.5441196378
+      },
+      {
+        "date": "2017-04-25",
+        "Equal weight": 216799.1578846119,
+        "Reviewed": 225641.11416528735,
+        "Initial": 225641.11416528735
+      },
+      {
+        "date": "2017-04-26",
+        "Equal weight": 216548.35086618128,
+        "Reviewed": 225321.86853773068,
+        "Initial": 225321.86853773068
+      },
+      {
+        "date": "2017-04-27",
+        "Equal weight": 216917.44044990087,
+        "Reviewed": 226027.92299893755,
+        "Initial": 226027.92299893755
+      },
+      {
+        "date": "2017-04-28",
+        "Equal weight": 217102.86436041992,
+        "Reviewed": 226400.52895152548,
+        "Initial": 226400.52895152548
+      },
+      {
+        "date": "2017-05-01",
+        "Equal weight": 219610.98350223602,
+        "Reviewed": 230041.6896035265,
+        "Initial": 230041.6896035265
+      },
+      {
+        "date": "2017-05-02",
+        "Equal weight": 219648.1268256537,
+        "Reviewed": 230089.81112605814,
+        "Initial": 230089.81112605814
+      },
+      {
+        "date": "2017-05-03",
+        "Equal weight": 219463.57772797887,
+        "Reviewed": 229591.99940120004,
+        "Initial": 229591.99940120004
+      },
+      {
+        "date": "2017-05-04",
+        "Equal weight": 218841.356260274,
+        "Reviewed": 228802.9311709699,
+        "Initial": 228802.9311709699
+      },
+      {
+        "date": "2017-05-05",
+        "Equal weight": 219464.35782693303,
+        "Reviewed": 229784.90857507352,
+        "Initial": 229784.90857507352
+      },
+      {
+        "date": "2017-05-08",
+        "Equal weight": 221533.6370925471,
+        "Reviewed": 232632.13755552017,
+        "Initial": 232632.13755552017
+      },
+      {
+        "date": "2017-05-09",
+        "Equal weight": 221677.21846002355,
+        "Reviewed": 233166.32367165078,
+        "Initial": 233166.32367165078
+      },
+      {
+        "date": "2017-05-10",
+        "Equal weight": 221438.66219272817,
+        "Reviewed": 232961.84518430257,
+        "Initial": 232961.84518430257
+      },
+      {
+        "date": "2017-05-11",
+        "Equal weight": 221390.92152733932,
+        "Reviewed": 232531.4399686865,
+        "Initial": 232531.4399686865
+      },
+      {
+        "date": "2017-05-12",
+        "Equal weight": 222584.2790475606,
+        "Reviewed": 234228.7754205676,
+        "Initial": 234228.7754205676
+      },
+      {
+        "date": "2017-05-15",
+        "Equal weight": 223561.8027795367,
+        "Reviewed": 234202.62363734504,
+        "Initial": 234202.62363734504
+      },
+      {
+        "date": "2017-05-16",
+        "Equal weight": 224610.9285956943,
+        "Reviewed": 235507.94176610824,
+        "Initial": 235507.94176610824
+      },
+      {
+        "date": "2017-05-17",
+        "Equal weight": 219349.39161351958,
+        "Reviewed": 229022.97794932468,
+        "Initial": 229022.97794932468
+      },
+      {
+        "date": "2017-05-18",
+        "Equal weight": 220614.92826920777,
+        "Reviewed": 230968.19179438573,
+        "Initial": 230968.19179438573
+      },
+      {
+        "date": "2017-05-19",
+        "Equal weight": 221200.62341514343,
+        "Reviewed": 231578.02621638292,
+        "Initial": 231578.02621638292
+      },
+      {
+        "date": "2017-05-22",
+        "Equal weight": 222526.27038549745,
+        "Reviewed": 233345.4297801891,
+        "Initial": 233345.4297801891
+      },
+      {
+        "date": "2017-05-23",
+        "Equal weight": 223218.2696622779,
+        "Reviewed": 233928.17392033324,
+        "Initial": 233928.17392033324
+      },
+      {
+        "date": "2017-05-24",
+        "Equal weight": 223395.326961964,
+        "Reviewed": 234320.6549136199,
+        "Initial": 234320.6549136199
+      },
+      {
+        "date": "2017-05-25",
+        "Equal weight": 224245.7688955071,
+        "Reviewed": 235878.74984075592,
+        "Initial": 235878.74984075592
+      },
+      {
+        "date": "2017-05-26",
+        "Equal weight": 224213.377051466,
+        "Reviewed": 236141.53854975503,
+        "Initial": 236141.53854975503
+      },
+      {
+        "date": "2017-05-30",
+        "Equal weight": 223843.07623085703,
+        "Reviewed": 236019.87800241058,
+        "Initial": 236019.87800241058
+      },
+      {
+        "date": "2017-05-31",
+        "Equal weight": 222626.79380457132,
+        "Reviewed": 234384.69934496633,
+        "Initial": 234384.69934496633
+      },
+      {
+        "date": "2017-06-01",
+        "Equal weight": 223517.34645913678,
+        "Reviewed": 235229.4724546972,
+        "Initial": 235229.4724546972
+      },
+      {
+        "date": "2017-06-02",
+        "Equal weight": 225301.48814173235,
+        "Reviewed": 237959.0188710894,
+        "Initial": 237959.0188710894
+      },
+      {
+        "date": "2017-06-05",
+        "Equal weight": 225711.00237982243,
+        "Reviewed": 238191.7594474865,
+        "Initial": 238191.7594474865
+      },
+      {
+        "date": "2017-06-06",
+        "Equal weight": 226218.65818551058,
+        "Reviewed": 238312.5894700731,
+        "Initial": 238312.5894700731
+      },
+      {
+        "date": "2017-06-07",
+        "Equal weight": 226955.3761386057,
+        "Reviewed": 239346.52424932702,
+        "Initial": 239346.52424932702
+      },
+      {
+        "date": "2017-06-08",
+        "Equal weight": 226854.4122252317,
+        "Reviewed": 239146.0442095939,
+        "Initial": 239146.0442095939
+      },
+      {
+        "date": "2017-06-09",
+        "Equal weight": 224454.14961887585,
+        "Reviewed": 234124.05307256774,
+        "Initial": 234124.05307256774
+      },
+      {
+        "date": "2017-06-12",
+        "Equal weight": 222938.19838900838,
+        "Reviewed": 231425.24587474312,
+        "Initial": 231425.24587474312
+      },
+      {
+        "date": "2017-06-13",
+        "Equal weight": 224617.40913218624,
+        "Reviewed": 233788.48104385412,
+        "Initial": 233788.48104385412
+      },
+      {
+        "date": "2017-06-14",
+        "Equal weight": 223635.1602234566,
+        "Reviewed": 232407.657077418,
+        "Initial": 232407.657077418
+      },
+      {
+        "date": "2017-06-15",
+        "Equal weight": 222594.10571286883,
+        "Reviewed": 230787.30776072104,
+        "Initial": 230787.30776072104
+      },
+      {
+        "date": "2017-06-16",
+        "Equal weight": 223786.6148119606,
+        "Reviewed": 231683.84226859157,
+        "Initial": 231683.84226859157
+      },
+      {
+        "date": "2017-06-19",
+        "Equal weight": 226119.5920293997,
+        "Reviewed": 235139.89414863402,
+        "Initial": 235139.89414863402
+      },
+      {
+        "date": "2017-06-20",
+        "Equal weight": 224781.7430848894,
+        "Reviewed": 233373.99937941087,
+        "Initial": 233373.99937941087
+      },
+      {
+        "date": "2017-06-21",
+        "Equal weight": 225372.7016182036,
+        "Reviewed": 234418.96828391173,
+        "Initial": 234418.96828391173
+      },
+      {
+        "date": "2017-06-22",
+        "Equal weight": 225415.12192197336,
+        "Reviewed": 234201.58482872162,
+        "Initial": 234201.58482872162
+      },
+      {
+        "date": "2017-06-23",
+        "Equal weight": 226457.13392796824,
+        "Reviewed": 235449.89222738304,
+        "Initial": 235449.89222738304
+      },
+      {
+        "date": "2017-06-26",
+        "Equal weight": 225515.81147854085,
+        "Reviewed": 234128.13418588598,
+        "Initial": 234128.13418588598
+      },
+      {
+        "date": "2017-06-27",
+        "Equal weight": 223333.51291494514,
+        "Reviewed": 231235.31083588055,
+        "Initial": 231235.31083588055
+      },
+      {
+        "date": "2017-06-28",
+        "Equal weight": 225335.71060093486,
+        "Reviewed": 234133.4305508029,
+        "Initial": 234133.4305508029
+      },
+      {
+        "date": "2017-06-29",
+        "Equal weight": 223250.4116052921,
+        "Reviewed": 231478.0760331901,
+        "Initial": 231478.0760331901
+      },
+      {
+        "date": "2017-06-30",
+        "Equal weight": 223237.4595730265,
+        "Reviewed": 231525.67213587905,
+        "Initial": 231525.67213587905
+      },
+      {
+        "date": "2017-07-03",
+        "Equal weight": 223243.02256115785,
+        "Reviewed": 230461.0385643762,
+        "Initial": 230461.0385643762
+      },
+      {
+        "date": "2017-07-05",
+        "Equal weight": 224790.0034265871,
+        "Reviewed": 232762.18542685665,
+        "Initial": 232762.18542685665
+      },
+      {
+        "date": "2017-07-06",
+        "Equal weight": 223148.18133290616,
+        "Reviewed": 231083.6428919202,
+        "Initial": 231083.6428919202
+      },
+      {
+        "date": "2017-07-07",
+        "Equal weight": 224861.07207816024,
+        "Reviewed": 233499.094533234,
+        "Initial": 233499.094533234
+      },
+      {
+        "date": "2017-07-10",
+        "Equal weight": 225614.03530380016,
+        "Reviewed": 235186.99148066342,
+        "Initial": 235186.99148066342
+      },
+      {
+        "date": "2017-07-11",
+        "Equal weight": 225582.5017048836,
+        "Reviewed": 235177.0678892697,
+        "Initial": 235177.0678892697
+      },
+      {
+        "date": "2017-07-12",
+        "Equal weight": 227104.16297374776,
+        "Reviewed": 237006.28681003008,
+        "Initial": 237006.28681003008
+      },
+      {
+        "date": "2017-07-13",
+        "Equal weight": 227878.80708333748,
+        "Reviewed": 238172.85573168268,
+        "Initial": 238172.85573168268
+      },
+      {
+        "date": "2017-07-14",
+        "Equal weight": 228834.30510565478,
+        "Reviewed": 239394.36126037227,
+        "Initial": 239394.36126037227
+      },
+      {
+        "date": "2017-07-17",
+        "Equal weight": 229038.78632011884,
+        "Reviewed": 240234.27327446837,
+        "Initial": 240234.27327446837
+      },
+      {
+        "date": "2017-07-18",
+        "Equal weight": 230244.57935225047,
+        "Reviewed": 241319.81854451023,
+        "Initial": 241319.81854451023
+      },
+      {
+        "date": "2017-07-19",
+        "Equal weight": 231275.80781053088,
+        "Reviewed": 242449.6520443636,
+        "Initial": 242449.6520443636
+      },
+      {
+        "date": "2017-07-20",
+        "Equal weight": 231747.888961347,
+        "Reviewed": 242626.14021051658,
+        "Initial": 242626.14021051658
+      },
+      {
+        "date": "2017-07-21",
+        "Equal weight": 230613.46432729307,
+        "Reviewed": 241769.16229302762,
+        "Initial": 241769.16229302762
+      },
+      {
+        "date": "2017-07-24",
+        "Equal weight": 231017.03076065436,
+        "Reviewed": 243273.93681358206,
+        "Initial": 243273.93681358206
+      },
+      {
+        "date": "2017-07-25",
+        "Equal weight": 231959.95772787463,
+        "Reviewed": 244624.82207275514,
+        "Initial": 244624.82207275514
+      },
+      {
+        "date": "2017-07-26",
+        "Equal weight": 232100.35309960847,
+        "Reviewed": 245357.13163467444,
+        "Initial": 245357.13163467444
+      },
+      {
+        "date": "2017-07-27",
+        "Equal weight": 230483.86537320766,
+        "Reviewed": 242889.04825231424,
+        "Initial": 242889.04825231424
+      },
+      {
+        "date": "2017-07-28",
+        "Equal weight": 228708.59849245506,
+        "Reviewed": 240365.3271989486,
+        "Initial": 240365.3271989486
+      },
+      {
+        "date": "2017-07-31",
+        "Equal weight": 227491.361735027,
+        "Reviewed": 237913.4719106345,
+        "Initial": 237913.4719106345
+      },
+      {
+        "date": "2017-08-01",
+        "Equal weight": 230909.5503140959,
+        "Reviewed": 242790.50973184878,
+        "Initial": 242790.50973184878
+      },
+      {
+        "date": "2017-08-02",
+        "Equal weight": 230570.97428467227,
+        "Reviewed": 242234.72996296527,
+        "Initial": 242234.72996296527
+      },
+      {
+        "date": "2017-08-03",
+        "Equal weight": 229734.91165876816,
+        "Reviewed": 240700.8595633684,
+        "Initial": 240700.8595633684
+      },
+      {
+        "date": "2017-08-04",
+        "Equal weight": 230572.56315511465,
+        "Reviewed": 241865.32737216915,
+        "Initial": 241865.32737216915
+      },
+      {
+        "date": "2017-08-07",
+        "Equal weight": 231351.72357513112,
+        "Reviewed": 243095.0300043737,
+        "Initial": 243095.0300043737
+      },
+      {
+        "date": "2017-08-08",
+        "Equal weight": 231443.31527026973,
+        "Reviewed": 243616.19982807274,
+        "Initial": 243616.19982807274
+      },
+      {
+        "date": "2017-08-09",
+        "Equal weight": 231518.34106563198,
+        "Reviewed": 243294.3667718014,
+        "Initial": 243294.3667718014
+      },
+      {
+        "date": "2017-08-10",
+        "Equal weight": 227193.97902093033,
+        "Reviewed": 237646.1039693954,
+        "Initial": 237646.1039693954
+      },
+      {
+        "date": "2017-08-11",
+        "Equal weight": 228312.85253994082,
+        "Reviewed": 239789.2704834608,
+        "Initial": 239789.2704834608
+      },
+      {
+        "date": "2017-08-14",
+        "Equal weight": 230773.82710361734,
+        "Reviewed": 243080.485513734,
+        "Initial": 243080.485513734
+      },
+      {
+        "date": "2017-08-15",
+        "Equal weight": 231047.18379197508,
+        "Reviewed": 243547.44867069766,
+        "Initial": 243547.44867069766
+      },
+      {
+        "date": "2017-08-16",
+        "Equal weight": 230662.10621133115,
+        "Reviewed": 243029.11874336173,
+        "Initial": 243029.11874336173
+      },
+      {
+        "date": "2017-08-17",
+        "Equal weight": 227015.11223312674,
+        "Reviewed": 238792.46973114472,
+        "Initial": 238792.46973114472
+      },
+      {
+        "date": "2017-08-18",
+        "Equal weight": 226922.72544125406,
+        "Reviewed": 238646.2028145433,
+        "Initial": 238646.2028145433
+      },
+      {
+        "date": "2017-08-21",
+        "Equal weight": 226528.26172558332,
+        "Reviewed": 237861.4993308426,
+        "Initial": 237861.4993308426
+      },
+      {
+        "date": "2017-08-22",
+        "Equal weight": 228534.32315829617,
+        "Reviewed": 241000.3020288794,
+        "Initial": 241000.3020288794
+      },
+      {
+        "date": "2017-08-23",
+        "Equal weight": 228128.26278712225,
+        "Reviewed": 240187.06021748908,
+        "Initial": 240187.06021748908
+      },
+      {
+        "date": "2017-08-24",
+        "Equal weight": 227529.5473566648,
+        "Reviewed": 239396.13228318997,
+        "Initial": 239396.13228318997
+      },
+      {
+        "date": "2017-08-25",
+        "Equal weight": 227386.49435747694,
+        "Reviewed": 239416.3479060488,
+        "Initial": 239416.3479060488
+      },
+      {
+        "date": "2017-08-28",
+        "Equal weight": 227701.92575611296,
+        "Reviewed": 240028.8086427697,
+        "Initial": 240028.8086427697
+      },
+      {
+        "date": "2017-08-29",
+        "Equal weight": 228523.98160626084,
+        "Reviewed": 241201.7143126872,
+        "Initial": 241201.7143126872
+      },
+      {
+        "date": "2017-08-30",
+        "Equal weight": 229382.99450392483,
+        "Reviewed": 243019.18611789227,
+        "Initial": 243019.18611789227
+      },
+      {
+        "date": "2017-08-31",
+        "Equal weight": 230846.22693025682,
+        "Reviewed": 244717.25367574443,
+        "Initial": 244717.25367574443
+      },
+      {
+        "date": "2017-09-01",
+        "Equal weight": 230327.01499790174,
+        "Reviewed": 244180.60361557716,
+        "Initial": 244180.60361557716
+      },
+      {
+        "date": "2017-09-05",
+        "Equal weight": 228075.73736647252,
+        "Reviewed": 241509.1700219578,
+        "Initial": 241509.1700219578
+      },
+      {
+        "date": "2017-09-06",
+        "Equal weight": 229063.63985195154,
+        "Reviewed": 241939.26035339778,
+        "Initial": 241939.26035339778
+      },
+      {
+        "date": "2017-09-07",
+        "Equal weight": 229818.4803288736,
+        "Reviewed": 242747.36640804514,
+        "Initial": 242747.36640804514
+      },
+      {
+        "date": "2017-09-08",
+        "Equal weight": 227806.5622777005,
+        "Reviewed": 240305.04575126042,
+        "Initial": 240305.04575126042
+      },
+      {
+        "date": "2017-09-11",
+        "Equal weight": 230898.8822565574,
+        "Reviewed": 243598.89372997213,
+        "Initial": 243598.89372997213
+      },
+      {
+        "date": "2017-09-12",
+        "Equal weight": 231221.74360360912,
+        "Reviewed": 243960.14266395385,
+        "Initial": 243960.14266395385
+      },
+      {
+        "date": "2017-09-13",
+        "Equal weight": 232055.30275565386,
+        "Reviewed": 245116.91473277553,
+        "Initial": 245116.91473277553
+      },
+      {
+        "date": "2017-09-14",
+        "Equal weight": 231647.71661687607,
+        "Reviewed": 243752.28620376973,
+        "Initial": 243752.28620376973
+      },
+      {
+        "date": "2017-09-15",
+        "Equal weight": 232472.72707586398,
+        "Reviewed": 244743.83237902416,
+        "Initial": 244743.83237902416
+      },
+      {
+        "date": "2017-09-18",
+        "Equal weight": 232260.233217401,
+        "Reviewed": 243758.7202479566,
+        "Initial": 243758.7202479566
+      },
+      {
+        "date": "2017-09-19",
+        "Equal weight": 232626.13148526987,
+        "Reviewed": 244086.01910733792,
+        "Initial": 244086.01910733792
+      },
+      {
+        "date": "2017-09-20",
+        "Equal weight": 231543.39849941235,
+        "Reviewed": 242959.9540254249,
+        "Initial": 242959.9540254249
+      },
+      {
+        "date": "2017-09-21",
+        "Equal weight": 229508.15638605002,
+        "Reviewed": 240632.97395394408,
+        "Initial": 240632.97395394408
+      },
+      {
+        "date": "2017-09-22",
+        "Equal weight": 228593.73143814265,
+        "Reviewed": 239435.3138045087,
+        "Initial": 239435.3138045087
+      },
+      {
+        "date": "2017-09-25",
+        "Equal weight": 226975.24027604816,
+        "Reviewed": 236847.802016169,
+        "Initial": 236847.802016169
+      },
+      {
+        "date": "2017-09-26",
+        "Equal weight": 227405.78426022673,
+        "Reviewed": 237713.69948983414,
+        "Initial": 237713.69948983414
+      },
+      {
+        "date": "2017-09-27",
+        "Equal weight": 228995.1193797834,
+        "Reviewed": 240012.78625604976,
+        "Initial": 240012.78625604976
+      },
+      {
+        "date": "2017-09-28",
+        "Equal weight": 229252.04083679142,
+        "Reviewed": 240168.65166385102,
+        "Initial": 240168.65166385102
+      },
+      {
+        "date": "2017-09-29",
+        "Equal weight": 230169.41046294558,
+        "Reviewed": 241386.15343776328,
+        "Initial": 241386.15343776328
+      },
+      {
+        "date": "2017-10-02",
+        "Equal weight": 230776.27927070745,
+        "Reviewed": 241656.88931021508,
+        "Initial": 241656.88931021508
+      },
+      {
+        "date": "2017-10-03",
+        "Equal weight": 231185.0721564561,
+        "Reviewed": 241761.7438929108,
+        "Initial": 241761.7438929108
+      },
+      {
+        "date": "2017-10-04",
+        "Equal weight": 231356.2768478214,
+        "Reviewed": 241927.18727552964,
+        "Initial": 241927.18727552964
+      },
+      {
+        "date": "2017-10-05",
+        "Equal weight": 233714.59647780817,
+        "Reviewed": 245092.55693812337,
+        "Initial": 245092.55693812337
+      },
+      {
+        "date": "2017-10-06",
+        "Equal weight": 233920.63143989677,
+        "Reviewed": 245548.16116204325,
+        "Initial": 245548.16116204325
+      },
+      {
+        "date": "2017-10-09",
+        "Equal weight": 234280.72759927137,
+        "Reviewed": 245992.76003706505,
+        "Initial": 245992.76003706505
+      },
+      {
+        "date": "2017-10-10",
+        "Equal weight": 234618.95863822938,
+        "Reviewed": 246072.07555190785,
+        "Initial": 246072.07555190785
+      },
+      {
+        "date": "2017-10-11",
+        "Equal weight": 236023.51241466333,
+        "Reviewed": 247047.3184886173,
+        "Initial": 247047.3184886173
+      },
+      {
+        "date": "2017-10-12",
+        "Equal weight": 236165.29422155092,
+        "Reviewed": 247450.22756652502,
+        "Initial": 247450.22756652502
+      },
+      {
+        "date": "2017-10-13",
+        "Equal weight": 236562.87774022517,
+        "Reviewed": 248239.30456690496,
+        "Initial": 248239.30456690496
+      },
+      {
+        "date": "2017-10-16",
+        "Equal weight": 238440.09984944251,
+        "Reviewed": 250568.04543032448,
+        "Initial": 250568.04543032448
+      },
+      {
+        "date": "2017-10-17",
+        "Equal weight": 240014.03287639454,
+        "Reviewed": 251109.30547021332,
+        "Initial": 251109.30547021332
+      },
+      {
+        "date": "2017-10-18",
+        "Equal weight": 239321.5207742619,
+        "Reviewed": 250105.4167300872,
+        "Initial": 250105.4167300872
+      },
+      {
+        "date": "2017-10-19",
+        "Equal weight": 238367.80292049298,
+        "Reviewed": 248127.26130627992,
+        "Initial": 248127.26130627992
+      },
+      {
+        "date": "2017-10-20",
+        "Equal weight": 239534.13459926192,
+        "Reviewed": 249274.0436708987,
+        "Initial": 249274.0436708987
+      },
+      {
+        "date": "2017-10-23",
+        "Equal weight": 239121.38777773798,
+        "Reviewed": 248170.3957965753,
+        "Initial": 248170.3957965753
+      },
+      {
+        "date": "2017-10-24",
+        "Equal weight": 239946.3942402928,
+        "Reviewed": 249725.92223043798,
+        "Initial": 249725.92223043798
+      },
+      {
+        "date": "2017-10-25",
+        "Equal weight": 239663.35490575753,
+        "Reviewed": 249076.9674736477,
+        "Initial": 249076.9674736477
+      },
+      {
+        "date": "2017-10-26",
+        "Equal weight": 240190.64467561495,
+        "Reviewed": 249838.50385425863,
+        "Initial": 249838.50385425863
+      },
+      {
+        "date": "2017-10-27",
+        "Equal weight": 250264.0832887991,
+        "Reviewed": 264861.10564772005,
+        "Initial": 264861.10564772005
+      },
+      {
+        "date": "2017-10-30",
+        "Equal weight": 251084.8524838103,
+        "Reviewed": 266930.895117356,
+        "Initial": 266930.895117356
+      },
+      {
+        "date": "2017-10-31",
+        "Equal weight": 250581.4684823217,
+        "Reviewed": 266661.1172721404,
+        "Initial": 266661.1172721404
+      },
+      {
+        "date": "2017-11-01",
+        "Equal weight": 250367.08684610028,
+        "Reviewed": 265847.2929421065,
+        "Initial": 265847.2929421065
+      },
+      {
+        "date": "2017-11-02",
+        "Equal weight": 250878.65409827928,
+        "Reviewed": 266611.3810487996,
+        "Initial": 266611.3810487996
+      },
+      {
+        "date": "2017-11-03",
+        "Equal weight": 252799.23738925127,
+        "Reviewed": 269609.91668780043,
+        "Initial": 269609.91668780043
+      },
+      {
+        "date": "2017-11-06",
+        "Equal weight": 253753.2074911197,
+        "Reviewed": 271090.08159788855,
+        "Initial": 271090.08159788855
+      },
+      {
+        "date": "2017-11-07",
+        "Equal weight": 253083.87534484745,
+        "Reviewed": 270612.5716452179,
+        "Initial": 270612.5716452179
+      },
+      {
+        "date": "2017-11-08",
+        "Equal weight": 254058.72112051057,
+        "Reviewed": 271769.8804491826,
+        "Initial": 271769.8804491826
+      },
+      {
+        "date": "2017-11-09",
+        "Equal weight": 253440.25412131037,
+        "Reviewed": 271028.5585861722,
+        "Initial": 271028.5585861722
+      },
+      {
+        "date": "2017-11-10",
+        "Equal weight": 252158.9924642864,
+        "Reviewed": 269836.97064034356,
+        "Initial": 269836.97064034356
+      },
+      {
+        "date": "2017-11-13",
+        "Equal weight": 252331.7994623004,
+        "Reviewed": 269957.63287626486,
+        "Initial": 269957.63287626486
+      },
+      {
+        "date": "2017-11-14",
+        "Equal weight": 251439.53423826557,
+        "Reviewed": 269109.20775180403,
+        "Initial": 269109.20775180403
+      },
+      {
+        "date": "2017-11-15",
+        "Equal weight": 249635.4931741352,
+        "Reviewed": 266740.00771728344,
+        "Initial": 266740.00771728344
+      },
+      {
+        "date": "2017-11-16",
+        "Equal weight": 250602.66574331847,
+        "Reviewed": 268465.9429614601,
+        "Initial": 268465.9429614601
+      },
+      {
+        "date": "2017-11-17",
+        "Equal weight": 249083.89251598553,
+        "Reviewed": 266724.1003469106,
+        "Initial": 266724.1003469106
+      },
+      {
+        "date": "2017-11-20",
+        "Equal weight": 249372.16937162928,
+        "Reviewed": 266865.15223772853,
+        "Initial": 266865.15223772853
+      },
+      {
+        "date": "2017-11-21",
+        "Equal weight": 251698.26118658955,
+        "Reviewed": 270090.399142292,
+        "Initial": 270090.399142292
+      },
+      {
+        "date": "2017-11-22",
+        "Equal weight": 252303.72392569206,
+        "Reviewed": 271384.0199185928,
+        "Initial": 271384.0199185928
+      },
+      {
+        "date": "2017-11-24",
+        "Equal weight": 253906.9091044727,
+        "Reviewed": 273459.5744831863,
+        "Initial": 273459.5744831863
+      },
+      {
+        "date": "2017-11-27",
+        "Equal weight": 254176.94664976708,
+        "Reviewed": 274038.288799431,
+        "Initial": 274038.288799431
+      },
+      {
+        "date": "2017-11-28",
+        "Equal weight": 256389.92988939356,
+        "Reviewed": 275611.5832600308,
+        "Initial": 275611.5832600308
+      },
+      {
+        "date": "2017-11-29",
+        "Equal weight": 254176.96256783121,
+        "Reviewed": 271599.96362249437,
+        "Initial": 271599.96362249437
+      },
+      {
+        "date": "2017-11-30",
+        "Equal weight": 256519.36426945802,
+        "Reviewed": 274726.50488268683,
+        "Initial": 274726.50488268683
+      },
+      {
+        "date": "2017-12-01",
+        "Equal weight": 256053.8587205915,
+        "Reviewed": 273648.7539236628,
+        "Initial": 273648.7539236628
+      },
+      {
+        "date": "2017-12-04",
+        "Equal weight": 253334.566772586,
+        "Reviewed": 269409.18827764725,
+        "Initial": 269409.18827764725
+      },
+      {
+        "date": "2017-12-05",
+        "Equal weight": 253367.79532940913,
+        "Reviewed": 269746.22356984427,
+        "Initial": 269746.22356984427
+      },
+      {
+        "date": "2017-12-06",
+        "Equal weight": 254171.2032621641,
+        "Reviewed": 270827.52015949745,
+        "Initial": 270827.52015949745
+      },
+      {
+        "date": "2017-12-07",
+        "Equal weight": 254113.2333817355,
+        "Reviewed": 271115.18516783474,
+        "Initial": 271115.18516783474
+      },
+      {
+        "date": "2017-12-08",
+        "Equal weight": 255820.97616807272,
+        "Reviewed": 273109.34232122044,
+        "Initial": 273109.34232122044
+      },
+      {
+        "date": "2017-12-11",
+        "Equal weight": 257817.5225702899,
+        "Reviewed": 275819.3867605504,
+        "Initial": 275819.3867605504
+      },
+      {
+        "date": "2017-12-12",
+        "Equal weight": 258346.3306959793,
+        "Reviewed": 275868.1413148984,
+        "Initial": 275868.1413148984
+      },
+      {
+        "date": "2017-12-13",
+        "Equal weight": 258049.1032322564,
+        "Reviewed": 275478.1934210659,
+        "Initial": 275478.1934210659
+      },
+      {
+        "date": "2017-12-14",
+        "Equal weight": 257369.60459008205,
+        "Reviewed": 275219.48791993514,
+        "Initial": 275219.48791993514
+      },
+      {
+        "date": "2017-12-15",
+        "Equal weight": 260081.78535539593,
+        "Reviewed": 278584.411659138,
+        "Initial": 278584.411659138
+      },
+      {
+        "date": "2017-12-18",
+        "Equal weight": 261129.89612897325,
+        "Reviewed": 280259.51146979345,
+        "Initial": 280259.51146979345
+      },
+      {
+        "date": "2017-12-19",
+        "Equal weight": 259796.12490996005,
+        "Reviewed": 278562.03643950936,
+        "Initial": 278562.03643950936
+      },
+      {
+        "date": "2017-12-20",
+        "Equal weight": 258983.52777631205,
+        "Reviewed": 277503.0785154618,
+        "Initial": 277503.0785154618
+      },
+      {
+        "date": "2017-12-21",
+        "Equal weight": 260011.1999192077,
+        "Reviewed": 278319.29880809353,
+        "Initial": 278319.29880809353
+      },
+      {
+        "date": "2017-12-22",
+        "Equal weight": 259362.42774665772,
+        "Reviewed": 277751.8095986505,
+        "Initial": 277751.8095986505
+      },
+      {
+        "date": "2017-12-26",
+        "Equal weight": 258232.98593885006,
+        "Reviewed": 276163.93362531805,
+        "Initial": 276163.93362531805
+      },
+      {
+        "date": "2017-12-27",
+        "Equal weight": 258834.57775786187,
+        "Reviewed": 276865.00946463854,
+        "Initial": 276865.00946463854
+      },
+      {
+        "date": "2017-12-28",
+        "Equal weight": 259405.86760334173,
+        "Reviewed": 277549.1032281994,
+        "Initial": 277549.1032281994
+      },
+      {
+        "date": "2017-12-29",
+        "Equal weight": 257339.73675524062,
+        "Reviewed": 275116.7693903658,
+        "Initial": 275116.7693903658
+      }
+    ],
+    "metrics": {
+      "Equal weight": {
+        "Return": 0.2866986837762031,
+        "Max drawdown": -0.02429173013857877,
+        "End value": 257339.73675524062,
+        "Entry fee": 200.0
+      },
+      "Reviewed": {
+        "Return": 0.3755838469518291,
+        "Max drawdown": -0.03712393866098007,
+        "End value": 275116.7693903658,
+        "Entry fee": 200.0
+      },
+      "Initial": {
+        "Return": 0.3755838469518291,
+        "Max drawdown": -0.03712393866098007,
+        "End value": 275116.7693903658,
+        "Entry fee": 200.0
+      }
+    },
+    "assumptions": {
+      "entry": "First available close strictly after cutoff",
+      "rebalancing": "None; fixed shares",
+      "entry_cost_bps": 10,
+      "price_treatment": "Uploaded price series; dividends not added separately",
+      "reserve": "Excluded from sleeve performance; assumed zero return for total-capital display",
+      "rounding": "Validated weights within 0.0001 of 1 are scaled to 1 at execution"
+    }
+  }
+}
