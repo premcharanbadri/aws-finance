@@ -1,2 +1,5 @@
 yfinance
 pandas
+boto3
+strands-agents
+pytest
