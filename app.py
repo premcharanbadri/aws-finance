@@ -158,6 +158,9 @@ def panel_accounting(rec):
     c1.metric("Investable budget", money(b.investable_budget))
     c2.metric("Cash available", money(b.cash_available))
     c3.metric("Min cash buffer", money(b.min_cash_buffer))
+    src = getattr(b, "source", "") or ""
+    if src:
+        st.caption(f"Financials source: `{src}`")
     st.write(safe(b.rationale))
     flags = list(b.cpa_flags or [])
     if flags:
@@ -237,7 +240,18 @@ with st.sidebar:
     with st.expander("Advanced"):
         max_iter = st.slider("Max revision iterations", 1, 5, 3)
         min_sharpe = st.slider("Min acceptable Sharpe", 0.0, 2.0, 0.5, 0.1)
-        st.caption(f"Data provider: `{os.getenv('DATA_PROVIDER', 'synthetic')}`")
+        data_src = os.getenv("DATA_PROVIDER", "synthetic").lower()
+        st.caption(f"Data provider: `{data_src}`")
+        if data_src in ("redshift", "aws"):
+            st.caption(
+                "Financials come from Amazon Redshift "
+                "(`accounting.liquidity_snapshot`); prices/sentiment are "
+                "synthetic. Falls back to synthetic if Redshift is unreachable."
+            )
+        elif data_src == "yfinance":
+            st.caption("Prices from yfinance; financials/sentiment synthetic.")
+        else:
+            st.caption("All data synthetic (offline demo).")
 
     run = st.button("Ask the advisory firm", type="primary", use_container_width=True)
 

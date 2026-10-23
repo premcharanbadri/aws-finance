@@ -81,6 +81,7 @@ if _HAS_PYDANTIC:
         # fraction of cash tied up in reserve + near-term obligations.
         max_drawdown_tolerance: float = 0.25
         liquidity_need_pct: float = 0.0
+        source: str = ""
 
     # -----------------------------------------------------------------------
     # Qualitative branch (Market Strategist)
@@ -165,6 +166,7 @@ else:  # pragma: no cover - dataclass fallback mirrors the models above
         rationale: str = ""
         max_drawdown_tolerance: float = 0.25
         liquidity_need_pct: float = 0.0
+        source: str = ""
 
     @dataclass
     class MarketInsight:

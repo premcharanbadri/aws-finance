@@ -2,14 +2,16 @@
 Data layer: a provider interface so agents never touch a concrete source.
 
 Switch implementations with the DATA_PROVIDER env var:
-    synthetic (default) | yfinance | aws
+    synthetic (default) | yfinance | redshift (alias: aws)
 
 - SyntheticDataProvider: offline, deterministic (seeded), zero cost. Default
   for development and CI.
 - YFinanceDataProvider: real historical prices via yfinance (free), news
   stays synthetic. Stub provided; implement when needed.
-- AwsDataProvider: Redshift (prices/fundamentals) + S3/vector store (news) +
-  SageMaker Feature Store. Stub provided; implement when infra exists.
+- RedshiftDataProvider: company financials from the Amazon Redshift dbt marts
+  (accounting.liquidity_snapshot) via the Redshift Data API; prices/universe/
+  news inherited from synthetic (no price table in Redshift). Falls back to
+  synthetic financials if Redshift is unreachable.
 
 Agents depend only on the DataProvider ABC below.
 """
@@ -264,21 +266,102 @@ class YFinanceDataProvider(SyntheticDataProvider):
         return super().get_prices(ticker, days)
 
 
-class AwsDataProvider(DataProvider):  # pragma: no cover - production stub
-    """Reads Redshift (prices/fundamentals), S3/vector store (news),
-    SageMaker Feature Store (features). Implement against real infra."""
+class RedshiftDataProvider(SyntheticDataProvider):
+    """Financials from Amazon Redshift (Tyler branch dbt marts); everything
+    else inherited from the synthetic provider.
+
+    The Redshift marts (`accounting`, `marketing`) hold the CLIENT company's
+    financials and campaign data — not stock prices — so only `get_financials`
+    is Redshift-backed here. `get_prices`/`get_universe`/`get_news` stay
+    synthetic (use DATA_PROVIDER=yfinance for real prices). Any Redshift error
+    (no creds, no network, no stack) falls back to the synthetic financials so
+    the app never breaks.
+
+    Query transport is reused from `advisors.redshift_tools.execute`, which
+    uses the Redshift Data API with the read-only `advisor_ro` secret.
+    """
+
+    #: schema-qualified one-row liquidity snapshot produced by dbt.
+    SNAPSHOT_TABLE = "accounting.liquidity_snapshot"
 
     def __init__(self) -> None:
-        raise NotImplementedError(
-            "AwsDataProvider requires Redshift/S3/vector-store wiring. "
-            "Use DATA_PROVIDER=synthetic until infra is provisioned."
-        )
+        super().__init__()
+        try:
+            from advisors.redshift_tools import execute  # Data API wrapper
+            self._execute = execute
+            self._available = True
+        except Exception:  # noqa: BLE001 - boto3/strands/tools not importable
+            self._execute = None
+            self._available = False
 
-    def get_universe(self, industry=None): ...
-    def get_prices(self, ticker, days=252): ...
-    def get_fundamentals(self, ticker): ...
-    def get_news(self, ticker, limit=5): ...
-    def get_financials(self, company): ...
+    def _query_snapshot(self) -> dict[str, Any] | None:
+        """Return the latest liquidity snapshot row as a dict, or None."""
+        if not self._available or self._execute is None:
+            return None
+        sql = (
+            "SELECT unrestricted_cash_usd, covenant_min_cash_usd, "
+            "operating_reserve_6m_usd, open_ap_usd, taxes_due_next_180d_usd, "
+            "avg_monthly_burn_3m_usd, avg_monthly_costs_3m_usd, runway_months, "
+            "illustrative_investable_cash_usd "
+            f"FROM {self.SNAPSHOT_TABLE} LIMIT 1"
+        )
+        try:
+            cols, rows, _ = self._execute(sql, max_rows=1)
+        except Exception:  # noqa: BLE001 - fail soft on any Data API error
+            return None
+        if not cols or not rows:
+            return None
+        return {c: v for c, v in zip(cols, rows[0])}
+
+    def get_financials(self, company: str) -> dict[str, Any]:
+        """Company financials from Redshift, mapped onto the provider contract.
+
+        Falls back to the synthetic financials if Redshift is unavailable.
+        """
+        snap = self._query_snapshot()
+        if snap is None:
+            fin = super().get_financials(company)
+            fin["source"] = "synthetic (Redshift unavailable)"
+            return fin
+
+        def num(key, default=0.0):
+            try:
+                return float(snap.get(key) or 0.0)
+            except (TypeError, ValueError):
+                return default
+
+        cash = num("unrestricted_cash_usd")
+        covenant_min = num("covenant_min_cash_usd")
+        reserve_6m = num("operating_reserve_6m_usd")
+        open_ap = num("open_ap_usd")
+        taxes_180d = num("taxes_due_next_180d_usd")
+        monthly_burn = num("avg_monthly_burn_3m_usd")
+        monthly_costs = num("avg_monthly_costs_3m_usd")
+
+        # Near-term obligations the CPA engine should net out = open AP + taxes.
+        obligations = open_ap + taxes_180d
+        # Approximate current liabilities for the working-capital check.
+        current_liabilities = obligations + reserve_6m
+        current_assets = cash + max(0.0, cash - current_liabilities)
+
+        return {
+            "company": company,
+            "cash_and_equivalents": round(cash, 2),
+            "current_assets": round(current_assets, 2),
+            "current_liabilities": round(current_liabilities, 2),
+            "working_capital": round(current_assets - current_liabilities, 2),
+            "existing_obligations": round(obligations, 2),
+            "debt_covenant_min_cash": round(covenant_min, 2),
+            # Operating cash flow derived from the marts: costs are the monthly
+            # outflow; revenue = costs - burn (burn is negative op cash flow).
+            "monthly_expenses": round(monthly_costs, 2),
+            "monthly_revenue": round(max(0.0, monthly_costs - monthly_burn), 2),
+            "source": "redshift:accounting.liquidity_snapshot",
+        }
+
+
+# Backwards-compatible alias: the previous stub name still resolves.
+AwsDataProvider = RedshiftDataProvider
 
 
 # ---------------------------------------------------------------------------
@@ -289,6 +372,6 @@ def get_provider() -> DataProvider:
     choice = os.getenv("DATA_PROVIDER", "synthetic").lower()
     if choice == "yfinance":
         return YFinanceDataProvider()
-    if choice == "aws":
-        return AwsDataProvider()
+    if choice in ("redshift", "aws"):
+        return RedshiftDataProvider()
     return SyntheticDataProvider()

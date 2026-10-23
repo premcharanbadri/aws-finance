@@ -128,6 +128,7 @@ def review(
         liquidity_ok=liquidity_ok,
         cpa_flags=cpa_flags,
         rationale=str(result.get("summary", "")),
+        source=str(fin.get("source", "")),
     )
     # Carry the extra specialist constraint onto the envelope (non-breaking:
     # BudgetEnvelope is pydantic/dataclass; set attribute for downstream use).
