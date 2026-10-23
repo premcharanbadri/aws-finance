@@ -216,16 +216,27 @@ class SyntheticDataProvider(DataProvider):
     def get_financials(self, company: str) -> dict[str, Any]:
         rng = self._rng(company + "fin")
         cash = float(rng.uniform(2e6, 5e7))
-        current_liabilities = float(rng.uniform(1e6, 3e7))
         current_assets = cash + float(rng.uniform(1e6, 2e7))
+        # Current liabilities below current assets so working capital is
+        # positive (a solvent going concern) — avoids the demo randomly
+        # starting a company in an insolvent state with a $0 budget.
+        current_liabilities = float(rng.uniform(0.3, 0.8)) * current_assets
+        # Operating cash flow: a monthly expense base with revenue modestly
+        # above it (a going concern is typically cash-flow positive). These are
+        # the fields the Accounting & Liquidity Reviewer actually needs — prefer
+        # them over balance-sheet proxies.
+        monthly_expenses = float(rng.uniform(2e5, 2e6))
+        monthly_revenue = monthly_expenses * float(rng.uniform(1.0, 1.4))
         return {
             "company": company,
             "cash_and_equivalents": round(cash, 2),
             "current_assets": round(current_assets, 2),
             "current_liabilities": round(current_liabilities, 2),
             "working_capital": round(current_assets - current_liabilities, 2),
-            "existing_obligations": round(float(rng.uniform(5e5, 1e7)), 2),
-            "debt_covenant_min_cash": round(cash * float(rng.uniform(0.1, 0.4)), 2),
+            "existing_obligations": round(cash * float(rng.uniform(0.05, 0.20)), 2),
+            "debt_covenant_min_cash": round(cash * float(rng.uniform(0.1, 0.3)), 2),
+            "monthly_revenue": round(monthly_revenue, 2),
+            "monthly_expenses": round(monthly_expenses, 2),
         }
 
 

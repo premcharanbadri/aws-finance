@@ -356,3 +356,67 @@ def test_guardrail_helper_unit():
 def test_typed_output_keys_match_typeddict():
     result = cpa.run_cpa(_by_id("acme"))
     assert set(result.keys()) == set(cpa.CpaResult.__annotations__.keys())
+
+
+# --- Adapter regression: the wired cpa.review must not zero out a solvent
+#     company's budget (guards against the current-liabilities/12 proxy bug). ---
+class _SolventProvider:
+    """Deterministic, clearly-solvent financials (no RNG flakiness)."""
+    def __init__(self, with_cashflow=True):
+        self.with_cashflow = with_cashflow
+
+    def get_financials(self, company):
+        fin = {
+            "company": company,
+            "cash_and_equivalents": 40_000_000.0,
+            "current_assets": 55_000_000.0,
+            "current_liabilities": 20_000_000.0,   # < current_assets -> WC positive
+            "working_capital": 35_000_000.0,
+            "existing_obligations": 3_000_000.0,   # modest vs cash
+            "debt_covenant_min_cash": 6_000_000.0,
+        }
+        if self.with_cashflow:
+            fin["monthly_revenue"] = 1_200_000.0
+            fin["monthly_expenses"] = 1_000_000.0
+        return fin
+
+
+def test_adapter_review_gives_positive_budget_for_solvent_company():
+    import agents.cpa as wired
+    env = wired.review("SolventCo", _SolventProvider(with_cashflow=True))
+    assert env.investable_budget > 0, "solvent company must have an investable budget"
+    assert env.liquidity_ok is True
+    # The extra specialist constraint travels with the budget.
+    assert 0.0 < env.max_drawdown_tolerance <= 1.0
+
+
+def test_adapter_fallback_proxy_without_cashflow_fields():
+    """If a provider omits monthly_revenue/expenses, the loosened proxy must
+    still not burn the entire current-liability base (which zeroed the budget)."""
+    import agents.cpa as wired
+    env = wired.review("NoCashflowCo", _SolventProvider(with_cashflow=False))
+    assert env.investable_budget > 0
+
+
+def test_adapter_zero_budget_when_obligations_exceed_cash():
+    """Sanity: a genuinely illiquid company SHOULD get a $0 budget (correct CPA
+    behavior, not a bug)."""
+    import agents.cpa as wired
+
+    class _IlliquidProvider:
+        def get_financials(self, company):
+            return {
+                "company": company,
+                "cash_and_equivalents": 2_000_000.0,
+                "current_assets": 3_000_000.0,
+                "current_liabilities": 9_000_000.0,
+                "working_capital": -6_000_000.0,
+                "existing_obligations": 5_000_000.0,  # exceeds cash
+                "debt_covenant_min_cash": 1_000_000.0,
+                "monthly_revenue": 100_000.0,
+                "monthly_expenses": 500_000.0,
+            }
+
+    env = wired.review("IlliquidCo", _IlliquidProvider())
+    assert env.investable_budget == 0.0
+    assert env.liquidity_ok is False

@@ -38,24 +38,39 @@ def _profile_from_financials(company: str, fin: dict[str, Any]) -> tuple[dict[st
     obligations_amt = float(fin.get("existing_obligations", 0.0))
 
     notes: list[str] = []
-    # Proxy near-term operating outflow: current liabilities spread over 12 months.
-    monthly_expenses = current_liabilities / 12.0 if current_liabilities > 0 else 0.0
-    notes.append(
-        "Approximation: monthly_expenses derived from current_liabilities/12 "
-        "(no expense field in financials); confirm actual operating burn."
-    )
-    # Conservative: take no credit for revenue we cannot see.
-    notes.append(
-        "Approximation: expected_monthly_revenue assumed $0 (no revenue field); "
-        "confirm recurring inflows that could raise investable budget."
-    )
+
+    # Prefer real operating cash-flow fields when the provider supplies them.
+    if fin.get("monthly_expenses") is not None:
+        monthly_expenses = float(fin.get("monthly_expenses", 0.0))
+    else:
+        # Fallback proxy (loosened): current liabilities are a balance due over
+        # ~12 months, NOT a recurring monthly outflow. Treat only a small
+        # fraction as the recurring monthly operating expense so we don't
+        # "spend" the entire liability base every month (the old /12 bug).
+        monthly_expenses = (current_liabilities / 12.0) * 0.15 if current_liabilities > 0 else 0.0
+        notes.append(
+            "Approximation: monthly_expenses proxied from ~1.25% of current "
+            "liabilities (no expense field); confirm actual operating burn."
+        )
+
+    if fin.get("monthly_revenue") is not None:
+        monthly_revenue = float(fin.get("monthly_revenue", 0.0))
+    else:
+        # Assume operationally break-even rather than zero revenue: a balance
+        # sheet gives no net-burn signal, and assuming 100% one-directional
+        # burn is the unjustified part that zeroed out the budget.
+        monthly_revenue = monthly_expenses
+        notes.append(
+            "Approximation: expected_monthly_revenue assumed equal to expenses "
+            "(operationally break-even; no revenue field); confirm actual inflows."
+        )
 
     profile = {
         "client_id": company,
         "company_name": company,
         "cash_on_hand": cash,
         "monthly_expenses": monthly_expenses,
-        "expected_monthly_revenue": 0.0,
+        "expected_monthly_revenue": monthly_revenue,
         "obligations": (
             [{"description": "Existing obligations", "amount": obligations_amt, "due_in_months": 6}]
             if obligations_amt > 0 else []
