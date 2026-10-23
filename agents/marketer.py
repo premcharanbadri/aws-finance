@@ -84,13 +84,15 @@ def research(
         f"Aggregate sentiment: {agg}\n"
         f"Recent headlines:\n" + "\n".join(headlines[:20]) + "\n"
         f"{('Coordinator guidance: ' + guidance) if guidance else ''}\n\n"
-        "Return JSON: themes (array of <=4 short strings), summary "
-        "(2-3 sentences grounded ONLY in the headlines above)."
+        "Respond in EXACTLY this plain-text format (no JSON, no markdown):\n"
+        "THEMES: theme one | theme two | theme three\n"
+        "SUMMARY: 2-3 sentences grounded only in the headlines above.\n"
     )
     try:
-        out = get_client().generate_json(prompt, system=SYSTEM)
-        themes = list(out.get("themes", []))
-        summary = str(out.get("summary", ""))
+        raw = get_client().generate(prompt, system=SYSTEM, max_tokens=500, temperature=0.2)
+        themes, summary = _parse_strategist(raw)
+        if not summary:
+            raise ValueError("empty summary")
     except Exception as exc:
         themes = ["sentiment aggregation only"]
         summary = f"LLM unavailable ({exc.__class__.__name__}); aggregate sentiment {agg}."
@@ -102,3 +104,25 @@ def research(
         sources=sources,
         summary=summary,
     )
+
+
+def _parse_strategist(raw: str) -> tuple[list[str], str]:
+    """Parse the delimited THEMES:/SUMMARY: format. Robust to extra prose,
+    code fences, and ordering."""
+    themes: list[str] = []
+    summary_lines: list[str] = []
+    mode = None
+    for line in raw.splitlines():
+        stripped = line.strip().strip("`").strip()
+        upper = stripped.upper()
+        if upper.startswith("THEMES:"):
+            body = stripped.split(":", 1)[1]
+            themes = [t.strip(" -*\"'") for t in body.split("|") if t.strip(" -*\"'")]
+            mode = "themes"
+        elif upper.startswith("SUMMARY:"):
+            summary_lines.append(stripped.split(":", 1)[1].strip())
+            mode = "summary"
+        elif mode == "summary" and stripped:
+            summary_lines.append(stripped)
+    summary = " ".join(s for s in summary_lines if s).strip()
+    return themes[:4], summary
