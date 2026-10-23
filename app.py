@@ -53,10 +53,22 @@ if run:
             min_sharpe=min_sharpe,
         )
 
+    def money(x) -> str:
+        """Format a number as USD with the $ escaped so Streamlit markdown
+        does not treat it as the start of a LaTeX math span."""
+        try:
+            return f"\\${x:,.0f}"
+        except (TypeError, ValueError):
+            return "—"
+
+    def safe(text) -> str:
+        """Escape $ in free text so it renders literally, not as math."""
+        return str(text or "").replace("$", "\\$")
+
     status = "✅ Accepted" if rec.accepted else "⚠️ Not accepted (see rationale)"
     st.subheader("Relationship Manager — consolidated recommendation")
     st.markdown(f"**{status}**")
-    st.write(rec.rationale)
+    st.write(safe(rec.rationale))
 
     col1, col2, col3 = st.columns(3)
     col1.metric("Confidence", f"{rec.confidence:.2f}")
@@ -81,29 +93,38 @@ if run:
             use_container_width=True,
         )
     else:
-        st.info("No positions carried weight in this run.")
+        st.info(
+            "No positions carried weight in this run — the Analyst did not find "
+            "names that cleared the risk/return bar within the budget."
+        )
 
     st.markdown("### Market Strategist")
-    st.write(rec.market.summary)
+    st.write(safe(rec.market.summary))
     if rec.market.themes:
-        st.write("Themes: " + ", ".join(rec.market.themes))
+        st.write("Themes: " + safe(", ".join(rec.market.themes)))
     st.caption("Sources: " + ", ".join(rec.market.sources or ["—"]))
 
     st.markdown("### Challenger")
     findings = list(getattr(rec, "challenger_findings", []) or [])
     if findings:
         for f in findings:
-            st.write(f"- {f}")
+            st.write(f"- {safe(f)}")
     else:
         st.success("No weak assumptions, concentration, or conflicts flagged.")
 
     st.markdown("### Historical backtest — original vs revised vs equal-weight baseline")
     comp = getattr(rec, "comparison", {}) or {}
-    if comp:
-        def _fmt(v, pct=True):
-            if v is None:
-                return "—"
-            return f"{v:.2%}" if pct else f"{v:.2f}"
+
+    def _fmt(v, pct=True):
+        if v is None:
+            return "—"
+        return f"{v:.2%}" if pct else f"{v:.2f}"
+
+    legs_ok = any(
+        (comp.get(k) or {}).get("annual_return") is not None
+        for k in ("original", "revised", "equal_weight_baseline")
+    )
+    if comp and legs_ok:
         rows = []
         for label, key in (
             ("Original", "original"),
@@ -122,21 +143,23 @@ if run:
             "Key differentiator: every specialist's findings feed the revision; "
             "we compare return and maximum drawdown against an equal-weight baseline."
         )
+    else:
+        st.info("Backtest comparison unavailable (no priced positions to evaluate).")
 
     st.markdown("### Accounting & Liquidity Reviewer")
     b = rec.budget
-    st.write(
-        f"Investable budget: **${b.investable_budget:,.0f}** "
-        f"(cash ${b.cash_available:,.0f}, min buffer ${b.min_cash_buffer:,.0f})"
+    st.markdown(
+        f"Investable budget: **{money(b.investable_budget)}** "
+        f"(cash {money(b.cash_available)}, min buffer {money(b.min_cash_buffer)})"
     )
-    st.write(b.rationale)
+    st.write(safe(b.rationale))
     if rec.cpa_review_required:
         st.warning("🧾 Human CPA review required.")
         for flag in b.cpa_flags:
-            st.write(f"- {flag}")
+            st.write(f"- {safe(flag)}")
 
     st.markdown("---")
-    st.caption(rec.disclaimer)
+    st.caption(safe(rec.disclaimer))
 
     with st.expander("Raw recommendation (JSON)"):
         st.json(to_dict(rec))

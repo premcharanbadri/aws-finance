@@ -189,12 +189,15 @@ def _synthesize(query, industry, proposal, insight, budget, reason) -> str:
     )
     try:
         return get_client().generate(prompt, system=COORDINATOR_SYSTEM, max_tokens=400)
-    except Exception as exc:
+    except Exception:
         held = [p["ticker"] for p in _positions(proposal) if p.get("weight", 0) > 0]
+        names = ", ".join(held) if held else "no positions cleared the risk/return bar"
+        budget_str = f"USD {budget.investable_budget:,.0f}"
         return (
-            f"Recommended allocation within {industry}: {held}. "
-            f"Budget ${budget.investable_budget:,.0f}. "
-            f"Backtest: {reason}. (LLM synthesis unavailable: {exc.__class__.__name__}.)"
+            f"Within the {industry} universe, the recommended allocation is {names}. "
+            f"Investable budget: {budget_str}. "
+            f"Backtest outcome: {reason}. "
+            f"(Narrative generated deterministically; live model narration was unavailable.)"
         )
 
 
