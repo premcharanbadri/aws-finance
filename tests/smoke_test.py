@@ -96,6 +96,24 @@ def main() -> None:
     check("iterations within cap", 1 <= rec.iterations <= 2)
     check("industries set", rec.industries == ["technology"])
     check("groundedness recorded in rationale", "Groundedness" in rec.rationale)
+    # Key differentiator: original vs revised vs equal-weight baseline.
+    comp = d.get("comparison", {})
+    check("comparison has all three legs",
+          {"original", "revised", "equal_weight_baseline"} <= set(comp.keys()))
+    check("comparison reports return + max drawdown",
+          comp["revised"]["annual_return"] is not None
+          and comp["revised"]["max_drawdown"] is not None
+          and comp["equal_weight_baseline"]["annual_return"] is not None)
+    check("challenger findings present in output", "challenger_findings" in d)
+
+    print("8b. Challenger (adversarial review of the proposal)")
+    crit = reviewer.challenge(proposal, insight, budget)
+    check("challenger returns findings list", isinstance(crit["findings"], list))
+    check("challenger returns a severity", crit["severity"] in {"none", "low", "high"})
+
+    print("8c. Accounting & Liquidity Reviewer uses the run_cpa engine")
+    check("budget envelope carries drawdown tolerance",
+          0.0 < getattr(budget, "max_drawdown_tolerance", 0) <= 1.0)
 
     print("9. Compliance gate (direct groundedness check)")
     g = reviewer.evaluate_groundedness(proposal, insight, budget, universe)

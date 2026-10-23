@@ -1,19 +1,21 @@
 """
-Coordinator agent (orchestrator).
+Relationship Manager (Coordinator / orchestrator).
 
 Topology (enforced here):
-  - The Coordinator is the ONLY agent that talks to the branches.
-  - Branches never talk to each other.
-  - Flow per the agreed design:
-        1. CPA (Accounting & Liquidity Reviewer) runs FIRST -> budget envelope.
+  - The Relationship Manager is the ONLY agent that talks to the specialists.
+  - Specialists never talk to each other.
+  - Flow per the Virtual Advisory Firm design:
+        1. Accounting & Liquidity Reviewer runs FIRST -> budget envelope.
         2. Investment Analyst and Market Strategist run IN PARALLEL, both
            constrained/informed by the budget + universe.
-        3. Coordinator synthesizes, then evaluates (backtest accept_signal +
-           groundedness). If rejected and iterations remain, it issues a
-           RevisionRequest to the relevant branch and loops.
-        4. Compliance Reviewer gates the final output.
+        3. Challenger critiques the proposed portfolio (weak assumptions,
+           concentration, quant/sentiment conflicts); its findings PLUS the
+           objective backtest drive the revision loop.
+        4. Historical backtest comparison: original vs revised vs equal-weight
+           baseline on return and maximum drawdown (the key differentiator).
+        5. Compliance/groundedness gate before the consolidated recommendation.
 
-In-process first (threads for parallelism). Each branch is a pure function
+In-process first (threads for parallelism). Each specialist is a pure function
 call today; wrapping each as its own AgentCore Runtime later only changes the
 transport in `_dispatch_parallel`, not this control flow.
 """
@@ -56,7 +58,7 @@ def recommend(
     data = data or get_provider()
     universe = data.get_universe(industry)
 
-    # --- Step 1: CPA runs first -> budget envelope (hard constraint) --------
+    # --- Step 1: Accounting & Liquidity Reviewer first -> budget envelope ---
     budget = cpa.review(company, data)
 
     # --- Revision loop over the parallel branches ---------------------------
@@ -68,13 +70,21 @@ def recommend(
     proposal: PortfolioProposal | None = None
     insight: MarketInsight | None = None
 
+    original_proposal: PortfolioProposal | None = None
+    original_bt: dict[str, Any] = {}
+    challenger_findings: list[str] = []
+
     for iterations in range(1, max_iterations + 1):
-        # --- Step 2: Analyst + Strategist IN PARALLEL -----------------------
+        # --- Step 2: Investment Analyst + Market Strategist IN PARALLEL -----
         proposal, insight = _dispatch_parallel(
             industry, data, budget.investable_budget, analyst_guidance, strategist_guidance
         )
 
-        # --- Step 3: objective evaluation (backtest accept/reject) ----------
+        # --- Step 3a: Challenger critiques the PROPOSED portfolio -----------
+        crit = reviewer.challenge(proposal, insight, budget)
+        challenger_findings = crit["findings"]
+
+        # --- Step 3b: objective evaluation (backtest accept/reject) ---------
         weights = {
             p["ticker"]: p["weight"]
             for p in _positions(proposal)
@@ -84,13 +94,33 @@ def recommend(
         bt = backtest.backtest(weights, prices)
         accepted, reason = backtest.accept_signal(bt, min_sharpe=min_sharpe)
 
-        if accepted:
+        # Record the FIRST iteration as the "original" for comparison.
+        if iterations == 1:
+            original_proposal = proposal
+            original_bt = bt
+
+        # Challenger can veto an otherwise-accepted proposal on high-severity
+        # findings, forcing a revision (specialist findings influence outcome).
+        challenger_blocks = crit["severity"] == "high"
+
+        if accepted and not challenger_blocks:
             break
 
-        # --- Revision: steer the branch most responsible for the reject -----
-        analyst_guidance, strategist_guidance = _revision_guidance(
-            reason, bt, insight
-        )
+        # --- Revision: combine backtest + Challenger guidance ---------------
+        bt_analyst, bt_strategist = _revision_guidance(reason, bt, insight)
+        analyst_guidance = crit["analyst_guidance"] or bt_analyst
+        strategist_guidance = crit["strategist_guidance"] or bt_strategist
+
+    # --- Step 4: historical backtest comparison (KEY DIFFERENTIATOR) --------
+    # original vs revised vs equal-weight baseline, on return + max drawdown.
+    revised_weights = {
+        p["ticker"]: p["weight"] for p in _positions(proposal) if p.get("weight", 0) > 0
+    }
+    revised_prices = {t: data.get_prices(t, 252) for t in revised_weights}
+    revised_bt = backtest.backtest(revised_weights, revised_prices)
+    baseline_prices = {t: data.get_prices(t, 252) for t in universe}
+    baseline_bt = backtest.benchmark_equal_weight(baseline_prices)
+    comparison = _build_comparison(original_bt, revised_bt, baseline_bt)
 
     # --- Synthesis (LLM narrative over grounded numbers) --------------------
     rationale = _synthesize(query, industry, proposal, insight, budget, reason)
@@ -105,9 +135,11 @@ def recommend(
         accepted=accepted,
         iterations=iterations,
         rationale=rationale,
+        challenger_findings=challenger_findings,
+        comparison=comparison,
     )
 
-    # --- Step 4: compliance + groundedness gate -----------------------------
+    # --- Compliance + groundedness gate -------------------------------------
     rec = reviewer.review(rec, analyzed_tickers=universe)
     return rec
 
@@ -171,6 +203,31 @@ def _positions(proposal: PortfolioProposal) -> list[dict[str, Any]]:
     for p in getattr(proposal, "positions", []) or []:
         out.append(p if isinstance(p, dict) else to_dict(p))
     return out
+
+
+def _build_comparison(original_bt, revised_bt, baseline_bt) -> dict[str, Any]:
+    """Assemble the original / revised / equal-weight comparison.
+
+    Each leg exposes annual_return and max_drawdown (the two spec metrics),
+    plus sharpe/volatility when available. Missing legs are marked not-ok.
+    """
+    def leg(bt: dict[str, Any]) -> dict[str, Any]:
+        if not bt or not bt.get("ok"):
+            return {"ok": False, "annual_return": None, "max_drawdown": None}
+        return {
+            "ok": True,
+            "annual_return": bt.get("annual_return"),
+            "max_drawdown": bt.get("max_drawdown"),
+            "sharpe": bt.get("sharpe"),
+            "annual_volatility": bt.get("annual_volatility"),
+        }
+
+    return {
+        "original": leg(original_bt),
+        "revised": leg(revised_bt),
+        "equal_weight_baseline": leg(baseline_bt),
+        "metrics": ["annual_return", "max_drawdown"],
+    }
 
 
 def _confidence(proposal: PortfolioProposal) -> float:

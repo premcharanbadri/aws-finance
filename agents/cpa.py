@@ -1,95 +1,124 @@
 """
-Accounting & Liquidity Reviewer agent.
+Accounting & Liquidity Reviewer agent (adapter to the liquidity engine).
 
-Runs UPSTREAM in the flow. Given the investing company's financials, it:
-  1. Determines a prudent investable budget (hard constraint for the optimizer).
-  2. Checks liquidity/solvency (working capital, cash buffer, covenants).
-  3. Flags open questions that require a *human CPA* (explicit HITL handoff).
+Runs UPSTREAM in the flow. `review(company, data) -> BudgetEnvelope` is the
+interface the Coordinator/orchestrator, Challenger, and UI depend on.
 
-It must NOT render autonomous accounting judgments — it bounds the problem
-and escalates judgment calls. Deterministic guardrails compute the numbers;
-the LLM adds narrative rationale and surfaces nuanced CPA questions.
+Internally this now delegates the budget decision to the richer liquidity
+engine in ``agents.cpa_liquidity.run_cpa`` (deterministic reserve/runway/
+drawdown logic with an optional, fail-soft LLM pass). This adapter:
+  1. builds a client-profile dict from the data provider's financials,
+  2. calls run_cpa,
+  3. maps the CpaResult onto the BudgetEnvelope contract the rest of the
+     system reads (investable_budget, buffer, liquidity_ok, cpa_flags,
+     rationale), and also carries the extra risk constraint
+     (max_drawdown_tolerance) so a specialist finding reaches the recommendation.
+
+Field approximations are explicit and surfaced as CPA flags (there is no
+monthly-expenses/revenue field in the financials snapshot).
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from agents.cpa_liquidity import run_cpa
 from services.data import DataProvider
-from services.llm import get_client
 from services.schemas import BudgetEnvelope
 
-SYSTEM = (
-    "You are an Accounting & Liquidity Reviewer for a corporate treasury. "
-    "You assess how much cash a company can prudently deploy into market "
-    "investments without jeopardizing operations, covenants, or solvency. "
-    "You NEVER give definitive accounting or tax rulings; instead you flag "
-    "questions a licensed human CPA must answer. Be conservative."
-)
 
+def _profile_from_financials(company: str, fin: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """Map a data-provider financials snapshot onto a run_cpa client profile.
 
-def _deterministic_budget(fin: dict[str, Any], max_deploy_pct: float = 0.5) -> dict[str, Any]:
-    """Compute the hard numbers independently of the LLM."""
+    Returns (profile, approximation_notes). The financials snapshot has no
+    monthly expenses/revenue, so we approximate conservatively and record how.
+    """
     cash = float(fin.get("cash_and_equivalents", 0.0))
-    covenant_min = float(fin.get("debt_covenant_min_cash", 0.0))
-    obligations = float(fin.get("existing_obligations", 0.0))
-    working_capital = float(fin.get("working_capital", 0.0))
+    current_liabilities = float(fin.get("current_liabilities", 0.0))
+    obligations_amt = float(fin.get("existing_obligations", 0.0))
 
-    # Keep the larger of covenant minimum or a safety buffer (20% of cash).
-    min_buffer = max(covenant_min, 0.2 * cash)
-    deployable = max(0.0, cash - min_buffer - obligations)
-    budget = round(min(deployable, max_deploy_pct * cash), 2)
+    notes: list[str] = []
+    # Proxy near-term operating outflow: current liabilities spread over 12 months.
+    monthly_expenses = current_liabilities / 12.0 if current_liabilities > 0 else 0.0
+    notes.append(
+        "Approximation: monthly_expenses derived from current_liabilities/12 "
+        "(no expense field in financials); confirm actual operating burn."
+    )
+    # Conservative: take no credit for revenue we cannot see.
+    notes.append(
+        "Approximation: expected_monthly_revenue assumed $0 (no revenue field); "
+        "confirm recurring inflows that could raise investable budget."
+    )
 
-    liquidity_ok = working_capital > 0 and budget > 0
-    return {
-        "cash": cash,
-        "min_buffer": round(min_buffer, 2),
-        "budget": budget,
-        "liquidity_ok": liquidity_ok,
-        "working_capital": working_capital,
+    profile = {
+        "client_id": company,
+        "company_name": company,
+        "cash_on_hand": cash,
+        "monthly_expenses": monthly_expenses,
+        "expected_monthly_revenue": 0.0,
+        "obligations": (
+            [{"description": "Existing obligations", "amount": obligations_amt, "due_in_months": 6}]
+            if obligations_amt > 0 else []
+        ),
+        "risk_tolerance": "moderate",
+        "horizon_months": 12,
     }
+    return profile, notes
 
 
 def review(
     company: str,
     data: DataProvider,
-    guidance: str = "",
+    guidance: str = "",  # accepted for interface symmetry; run_cpa is deterministic
 ) -> BudgetEnvelope:
-    """Produce a BudgetEnvelope. `guidance` carries Coordinator revision notes."""
+    """Produce a BudgetEnvelope by delegating to the liquidity engine."""
     fin = data.get_financials(company)
-    calc = _deterministic_budget(fin)
+    profile, approx_notes = _profile_from_financials(company, fin)
 
-    prompt = (
-        f"Company: {company}\n"
-        f"Financial snapshot (USD): {fin}\n"
-        f"Deterministic pre-computation: {calc}\n"
-        f"{('Coordinator guidance: ' + guidance) if guidance else ''}\n\n"
-        "Return JSON with keys: investable_budget (number, use the "
-        "pre-computed budget unless you justify a lower value), "
-        "liquidity_ok (bool), cpa_flags (array of short strings - questions "
-        "for a human CPA, e.g. tax treatment, covenant interpretation, "
-        "impairment risk), rationale (1-3 sentences)."
-    )
+    result = run_cpa(profile)
 
-    try:
-        out = get_client().generate_json(prompt, system=SYSTEM)
-    except Exception as exc:  # LLM/credentials unavailable -> deterministic fallback
-        out = {
-            "investable_budget": calc["budget"],
-            "liquidity_ok": calc["liquidity_ok"],
-            "cpa_flags": ["LLM unavailable; verify budget manually"],
-            "rationale": f"Deterministic budget only ({exc.__class__.__name__}).",
-        }
+    cash = float(fin.get("cash_and_equivalents", 0.0))
+    covenant_min = float(fin.get("debt_covenant_min_cash", 0.0))
+    working_capital = float(fin.get("working_capital", 0.0))
 
-    # Never let the LLM exceed the deterministic cap.
-    budget = min(float(out.get("investable_budget", calc["budget"])), calc["budget"])
+    # The required reserve from the engine, floored by any debt covenant minimum.
+    reserve = float(result.get("required_reserve", 0.0))
+    min_buffer = max(reserve, covenant_min)
 
-    return BudgetEnvelope(
+    # Budget is the engine's figure, but never more than cash minus the
+    # covenant-aware buffer (keeps the covenant as a hard floor).
+    engine_budget = float(result.get("investable_budget", 0.0))
+    budget = max(0.0, min(engine_budget, cash - min_buffer))
+
+    # Compose CPA flags: engine risk flags + CPA questions + data-quality notes
+    # + our field approximations. Deduplicate while preserving order.
+    cpa_flags: list[str] = []
+    for src in (
+        result.get("risk_flags", []),
+        result.get("cpa_questions", []),
+        result.get("data_quality_flags", []),
+        approx_notes,
+    ):
+        for item in src or []:
+            if isinstance(item, str) and item.strip() and item not in cpa_flags:
+                cpa_flags.append(item.strip())
+
+    liquidity_ok = working_capital > 0 and budget > 0
+
+    env = BudgetEnvelope(
         company=company,
         investable_budget=round(budget, 2),
-        cash_available=calc["cash"],
-        min_cash_buffer=calc["min_buffer"],
-        liquidity_ok=bool(out.get("liquidity_ok", calc["liquidity_ok"])),
-        cpa_flags=list(out.get("cpa_flags", [])),
-        rationale=str(out.get("rationale", "")),
+        cash_available=round(cash, 2),
+        min_cash_buffer=round(min_buffer, 2),
+        liquidity_ok=liquidity_ok,
+        cpa_flags=cpa_flags,
+        rationale=str(result.get("summary", "")),
     )
+    # Carry the extra specialist constraint onto the envelope (non-breaking:
+    # BudgetEnvelope is pydantic/dataclass; set attribute for downstream use).
+    try:
+        env.max_drawdown_tolerance = float(result.get("max_drawdown_tolerance", 0.25))
+        env.liquidity_need_pct = float(result.get("liquidity_need_pct", 0.0))
+    except Exception:
+        pass
+    return env

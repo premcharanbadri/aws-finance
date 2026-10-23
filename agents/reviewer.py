@@ -36,6 +36,99 @@ DISCLAIMER = (
 )
 
 
+def challenge(
+    portfolio: PortfolioProposal,
+    market: MarketInsight,
+    budget: BudgetEnvelope,
+) -> dict[str, Any]:
+    """Challenger role: find weak assumptions, concentrated risks, and conflicts.
+
+    This is the adversarial reviewer from the firm spec. It inspects the PROPOSED
+    portfolio (not compliance) and returns structured findings plus per-branch
+    revision guidance, so the Coordinator can drive a genuine challenge→revision
+    cycle rather than relying on the backtest alone.
+
+    Returns {findings: [str], severity: 'none'|'low'|'high', analyst_guidance,
+    strategist_guidance}.
+    """
+    positions = [p for p in _positions(portfolio) if p.get("weight", 0) > 0]
+    findings: list[str] = []
+    analyst_guidance = ""
+    strategist_guidance = ""
+
+    if not positions:
+        return {
+            "findings": ["Empty portfolio: no positions carry weight."],
+            "severity": "high",
+            "analyst_guidance": "produce at least one justified position within budget",
+            "strategist_guidance": "",
+        }
+
+    # 1. Concentration risk — any single name dominating the book.
+    top = max(positions, key=lambda p: p.get("weight", 0.0))
+    if top["weight"] > 0.40:
+        findings.append(
+            f"Concentration risk: {top['ticker']} is {top['weight']:.0%} of the "
+            f"portfolio (>40%)."
+        )
+        analyst_guidance = "reduce single-name concentration; diversify holdings"
+
+    # 2. Thin diversification.
+    if len(positions) < 3:
+        findings.append(
+            f"Thin diversification: only {len(positions)} position(s); "
+            f"idiosyncratic risk is high."
+        )
+        analyst_guidance = analyst_guidance or "add more names to diversify"
+
+    # 3. Weak assumptions — negative-expected-return or low-confidence names held.
+    weak = [p for p in positions if p.get("expected_return", 0.0) <= 0]
+    if weak:
+        findings.append(
+            "Weak assumption: holding names with non-positive expected return: "
+            + ", ".join(p["ticker"] for p in weak)
+        )
+        analyst_guidance = analyst_guidance or "drop names without a positive return thesis"
+    lowconf = [p for p in positions if p.get("confidence", 0.0) < 0.2]
+    if lowconf:
+        findings.append(
+            "Weak assumption: low-confidence forecasts drive "
+            + ", ".join(p["ticker"] for p in lowconf)
+        )
+
+    # 4. Quant vs sentiment conflict — held names the Strategist is bearish on.
+    pts = getattr(market, "per_ticker_sentiment", {}) or {}
+    conflicts = [
+        p["ticker"] for p in positions
+        if pts.get(p["ticker"], 0.0) < -0.2
+    ]
+    if conflicts:
+        findings.append(
+            "Conflict: quant proposes names the Market Strategist is bearish on: "
+            + ", ".join(conflicts)
+        )
+        strategist_guidance = "reconcile bearish sentiment on held names or justify the tilt"
+
+    # 5. Budget under-utilization (capital efficiency assumption).
+    used = float(getattr(portfolio, "budget_used", 0.0) or 0.0)
+    cap = float(getattr(budget, "investable_budget", 0.0) or 0.0)
+    if cap > 0 and used < 0.5 * cap:
+        findings.append(
+            f"Capital under-deployed: only ${used:,.0f} of ${cap:,.0f} budget used."
+        )
+
+    severity = "none"
+    if findings:
+        severity = "high" if (top["weight"] > 0.40 or weak or conflicts) else "low"
+
+    return {
+        "findings": findings,
+        "severity": severity,
+        "analyst_guidance": analyst_guidance,
+        "strategist_guidance": strategist_guidance,
+    }
+
+
 def evaluate_groundedness(
     portfolio: PortfolioProposal,
     market: MarketInsight,

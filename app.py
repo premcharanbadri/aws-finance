@@ -19,12 +19,13 @@ import orchestrator
 from services.data import _INDUSTRIES, get_provider
 from services.schemas import to_dict
 
-st.set_page_config(page_title="Investment Recommendation Platform", layout="wide")
+st.set_page_config(page_title="Virtual Advisory Firm", layout="wide")
 
-st.title("📈 Investment Recommendation Platform")
+st.title("🏛️ Virtual Advisory Firm for Corporate Clients")
 st.caption(
-    "Multi-agent system: Coordinator · Investment Analyst (Predictor + "
-    "Statistical Inference) · Market Strategist · Accounting & Liquidity Reviewer"
+    "Specialized AI agents coordinated into one recommendation — "
+    "Relationship Manager · Market Strategist · Accounting & Liquidity Reviewer · "
+    "Challenger · Investment Analyst"
 )
 
 with st.sidebar:
@@ -43,7 +44,7 @@ with st.sidebar:
     run = st.button("Generate recommendation", type="primary")
 
 if run:
-    with st.spinner("Agents working (budget → parallel analysis → review)..."):
+    with st.spinner("Advisory firm working: Accounting & Liquidity → Analyst + Strategist (parallel) → Challenger → backtest..."):
         rec = orchestrator.recommend(
             query,
             industry=industry,
@@ -53,7 +54,8 @@ if run:
         )
 
     status = "✅ Accepted" if rec.accepted else "⚠️ Not accepted (see rationale)"
-    st.subheader(status)
+    st.subheader("Relationship Manager — consolidated recommendation")
+    st.markdown(f"**{status}**")
     st.write(rec.rationale)
 
     col1, col2, col3 = st.columns(3)
@@ -61,7 +63,7 @@ if run:
     col2.metric("Iterations", rec.iterations)
     col3.metric("Market sentiment", f"{rec.market.sentiment_score:+.2f}")
 
-    st.markdown("### Proposed portfolio")
+    st.markdown("### Investment Analyst — proposed portfolio")
     positions = [to_dict(p) for p in rec.portfolio.positions]
     held = [p for p in positions if p.get("weight", 0) > 0]
     if held:
@@ -81,13 +83,47 @@ if run:
     else:
         st.info("No positions carried weight in this run.")
 
-    st.markdown("### Market strategist")
+    st.markdown("### Market Strategist")
     st.write(rec.market.summary)
     if rec.market.themes:
         st.write("Themes: " + ", ".join(rec.market.themes))
     st.caption("Sources: " + ", ".join(rec.market.sources or ["—"]))
 
-    st.markdown("### Accounting & liquidity review")
+    st.markdown("### Challenger")
+    findings = list(getattr(rec, "challenger_findings", []) or [])
+    if findings:
+        for f in findings:
+            st.write(f"- {f}")
+    else:
+        st.success("No weak assumptions, concentration, or conflicts flagged.")
+
+    st.markdown("### Historical backtest — original vs revised vs equal-weight baseline")
+    comp = getattr(rec, "comparison", {}) or {}
+    if comp:
+        def _fmt(v, pct=True):
+            if v is None:
+                return "—"
+            return f"{v:.2%}" if pct else f"{v:.2f}"
+        rows = []
+        for label, key in (
+            ("Original", "original"),
+            ("Revised", "revised"),
+            ("Equal-weight baseline", "equal_weight_baseline"),
+        ):
+            leg = comp.get(key, {})
+            rows.append({
+                "Portfolio": label,
+                "Annual return": _fmt(leg.get("annual_return")),
+                "Max drawdown": _fmt(leg.get("max_drawdown")),
+                "Sharpe": _fmt(leg.get("sharpe"), pct=False),
+            })
+        st.dataframe(rows, use_container_width=True)
+        st.caption(
+            "Key differentiator: every specialist's findings feed the revision; "
+            "we compare return and maximum drawdown against an equal-weight baseline."
+        )
+
+    st.markdown("### Accounting & Liquidity Reviewer")
     b = rec.budget
     st.write(
         f"Investable budget: **${b.investable_budget:,.0f}** "

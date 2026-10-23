@@ -76,6 +76,11 @@ if _HAS_PYDANTIC:
             description="Open questions requiring a human CPA's judgment",
         )
         rationale: str = ""
+        # Specialist risk constraints surfaced to the recommendation (from the
+        # liquidity engine): max drawdown the client can tolerate, and the
+        # fraction of cash tied up in reserve + near-term obligations.
+        max_drawdown_tolerance: float = 0.25
+        liquidity_need_pct: float = 0.0
 
     # -----------------------------------------------------------------------
     # Qualitative branch (Market Strategist)
@@ -117,6 +122,8 @@ if _HAS_PYDANTIC:
         cpa_review_required: bool = False
         disclaimer: str = ""
         rationale: str = ""
+        challenger_findings: list[str] = Field(default_factory=list)
+        comparison: dict = Field(default_factory=dict)
 
 else:  # pragma: no cover - dataclass fallback mirrors the models above
 
@@ -155,6 +162,8 @@ else:  # pragma: no cover - dataclass fallback mirrors the models above
         liquidity_ok: bool = True
         cpa_flags: list = field(default_factory=list)
         rationale: str = ""
+        max_drawdown_tolerance: float = 0.25
+        liquidity_need_pct: float = 0.0
 
     @dataclass
     class MarketInsight:
@@ -183,6 +192,8 @@ else:  # pragma: no cover - dataclass fallback mirrors the models above
         cpa_review_required: bool = False
         disclaimer: str = ""
         rationale: str = ""
+        challenger_findings: list = field(default_factory=list)
+        comparison: dict = field(default_factory=dict)
 
 
 def to_dict(model: Any) -> dict:
