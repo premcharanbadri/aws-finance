@@ -8,3 +8,5 @@ __pycache__/
 .aws/
 .streamlit/secrets.toml
 runs/
+cdk.out/
+data/
