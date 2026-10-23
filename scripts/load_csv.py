@@ -3,7 +3,9 @@
 
   python scripts/load_csv.py raw/marketing/campaigns.csv campaigns [--replace]
 
-- Reads the CSV header from S3 and creates the table (all VARCHAR) if it doesn't exist.
+- Reads the CSV from S3, infers column names from the header and types from the
+  values (BIGINT / DECIMAL / DATE / TIMESTAMP / VARCHAR), and creates the table if it
+  doesn't exist. Use --all-varchar to make every column VARCHAR instead.
 - COPY ... CSV IGNOREHEADER 1 using the IAM role attached to the namespace.
 - Prints the row count when done.
 
@@ -52,11 +54,16 @@ def to_column(name):
     return col[:127]
 
 
-def read_header(s3, bucket, key):
-    # Range GET: only the first 64 KB is needed for the header line.
-    body = s3.get_object(Bucket=bucket, Key=key, Range="bytes=0-65535")["Body"].read()
-    first_line = body.decode("utf-8-sig").splitlines()[0]
-    cols = [to_column(c) for c in next(csv.reader(io.StringIO(first_line)))]
+def read_sample(s3, bucket, key, max_bytes=50 * 1024 * 1024):
+    """Return (columns, rows) from the CSV. Reads the whole file up to max_bytes
+    (our files are a few MB, so type inference sees every value)."""
+    obj = s3.get_object(Bucket=bucket, Key=key, Range=f"bytes=0-{max_bytes - 1}")
+    text = obj["Body"].read().decode("utf-8-sig")
+    truncated = obj.get("ContentLength", 0) >= max_bytes
+    if truncated:  # drop a possibly partial last line
+        text = text[: text.rfind("\n")]
+    reader = csv.reader(io.StringIO(text))
+    cols = [to_column(c) for c in next(reader)]
     seen = {}
     for i, c in enumerate(cols):  # de-duplicate
         if c in seen:
@@ -64,7 +71,32 @@ def read_header(s3, bucket, key):
             cols[i] = f"{c}_{seen[c]}"
         else:
             seen[c] = 0
-    return cols
+    return cols, list(reader), truncated
+
+
+INT_RE = re.compile(r"^-?\d{1,18}$")
+DEC_RE = re.compile(r"^-?\d{1,18}\.(\d{1,10})$")
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(\.\d+)?$")
+
+
+def infer_type(values):
+    """Pick the narrowest Redshift type that fits every non-empty value."""
+    vals = [v.strip() for v in values if v is not None and v.strip() != ""]
+    if not vals:
+        return "VARCHAR(256)"
+    if all(INT_RE.match(v) for v in vals):
+        return "BIGINT"
+    if all(INT_RE.match(v) or DEC_RE.match(v) for v in vals):
+        scale = max((len(m.group(1)) for v in vals if (m := DEC_RE.match(v))), default=0)
+        scale = max(2, scale)
+        return f"DECIMAL({min(38, 18 + scale)},{scale})"
+    if all(DATE_RE.match(v) for v in vals):
+        return "DATE"
+    if all(TS_RE.match(v) for v in vals):
+        return "TIMESTAMP"
+    width = max(len(v.encode()) for v in vals)
+    return f"VARCHAR({min(65535, max(256, width * 2))})"  # headroom for later loads
 
 
 def run(client, cfg, sqls):
@@ -80,7 +112,9 @@ def run(client, cfg, sqls):
             return sid
         if d["Status"] in ("FAILED", "ABORTED"):
             failed = next((s for s in d.get("SubStatements", []) if s.get("Error")), {})
-            raise RuntimeError(f"{d['Status']}: {d.get('Error')}\nSQL: {failed.get('QueryString', '')[:500]}")
+            raise RuntimeError(f"{d['Status']}: {d.get('Error')}\nSQL: {failed.get('QueryString', '')[:500]}\n"
+                               "For COPY errors run: SELECT * FROM sys_load_error_detail "
+                               "ORDER BY start_time DESC LIMIT 10;")
         time.sleep(1)
 
 
@@ -90,6 +124,8 @@ def main():
     ap.add_argument("table", help="target table name, e.g. campaigns or schema.table")
     ap.add_argument("--replace", action="store_true",
                     help="drop and recreate the table first (makes re-runs idempotent)")
+    ap.add_argument("--all-varchar", action="store_true",
+                    help="skip type inference and create every column as VARCHAR")
     args = ap.parse_args()
 
     table = args.table.lower()
@@ -100,8 +136,14 @@ def main():
     s3 = boto3.client("s3", region_name=cfg["REGION"])
     rsd = boto3.client("redshift-data", region_name=cfg["REGION"])
 
-    cols = read_header(s3, cfg["BUCKET"], args.key)
-    col_ddl = ",\n  ".join(f'"{c}" VARCHAR(1024)' for c in cols)
+    cols, rows, truncated = read_sample(s3, cfg["BUCKET"], args.key)
+    if args.all_varchar:
+        types = ["VARCHAR(1024)"] * len(cols)
+    else:
+        types = [infer_type([r[i] if i < len(r) else "" for r in rows]) for i in range(len(cols))]
+        if truncated:
+            print("  note: file > 50 MB, types inferred from the first 50 MB", flush=True)
+    col_ddl = ",\n  ".join(f'"{c}" {t}' for c, t in zip(cols, types))
     s3_uri = f"s3://{cfg['BUCKET']}/{args.key}".replace("'", "''")
     role = cfg["REDSHIFT_ROLE_ARN"].replace("'", "''")
 
