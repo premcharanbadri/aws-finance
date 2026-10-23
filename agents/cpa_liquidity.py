@@ -284,26 +284,37 @@ def deterministic_flags(m: Dict[str, Any]) -> List[str]:
 
 
 def deterministic_summary(m: Dict[str, Any], flags: List[str]) -> str:
-    """Plain-language explanation used when the LLM is unavailable."""
+    """Plain-language explanation used when the LLM is unavailable.
+
+    Organized as labeled markdown lines (not a run-on paragraph). Risk flags
+    are NOT appended here — they are returned separately as ``risk_flags`` and
+    surfaced on their own, so this stays a clean liquidity summary.
+    """
     if m["runway_is_unlimited"]:
         runway = "effectively unlimited"
     else:
         runway = f"{m['runway_months']:.1f} months"
     haircut_pct = int(round((1 - m["revenue_haircut"]) * 100))
-    parts = [
-        f"With ${m['cash_on_hand']:,.0f} cash and a net burn of "
-        f"${m['net_burn']:,.0f}/month (expected revenue haircut {haircut_pct}%), "
-        f"the runway is {runway}.",
-        f"A {m['reserve_months']}-month reserve of ${m['required_reserve']:,.0f} "
-        f"is held back, and ${m['obligations_due_within_horizon']:,.0f} of "
-        f"obligations fall due within {m['horizon_months']:.0f} months.",
-        f"The projected cash low point over the horizon is "
-        f"${m['min_projected_balance']:,.0f}.",
-        f"That leaves an investable budget of ${m['investable_budget']:,.0f}.",
+    budget = m["investable_budget"]
+    headline = (
+        "No cash is investable this cycle."
+        if budget <= 0 else
+        f"Up to ${budget:,.0f} is investable this cycle."
+    )
+    lines = [
+        f"**Liquidity review — {headline}**",
+        "",
+        f"- Cash on hand: ${m['cash_on_hand']:,.0f}",
+        f"- Net burn: ${m['net_burn']:,.0f}/month (revenue haircut {haircut_pct}%)",
+        f"- Runway: {runway}",
+        f"- Reserve held back: ${m['required_reserve']:,.0f} "
+        f"({m['reserve_months']}-month)",
+        f"- Obligations due within {m['horizon_months']:.0f} months: "
+        f"${m['obligations_due_within_horizon']:,.0f}",
+        f"- Projected cash low point: ${m['min_projected_balance']:,.0f}",
+        f"- **Investable budget: ${budget:,.0f}**",
     ]
-    if flags:
-        parts.append("Key risks: " + " ".join(flags))
-    return " ".join(parts)
+    return "\n".join(lines)
 
 
 def deterministic_questions(m: Dict[str, Any]) -> List[str]:
