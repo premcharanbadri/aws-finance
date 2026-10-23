@@ -142,8 +142,20 @@ choice and the real-data swap is zero-friction.
 | Provider | Status | Prices/Fundamentals | News |
 |---|---|---|---|
 | `SyntheticDataProvider` | **default, built** | industry-standard generator | canned + sentiment |
-| `YFinanceDataProvider` | stub (prices override ready) | yfinance (free) | synthetic |
-| `AwsDataProvider` | stub | Redshift | S3 + vector store |
+| `YFinanceDataProvider` | **built, live** | real 2015–2024 daily (yfinance) + best-effort fundamentals | synthetic |
+| `AwsDataProvider` | stub (needs infra) | Redshift (Text-to-SQL) | S3 + vector store |
+
+**`YFinanceDataProvider` (real prices, free, no AWS):**
+- `DATA_PROVIDER=yfinance` → real split/dividend-adjusted daily closes for the
+  2015-01-01 .. 2024-12-31 window (override with `YF_START`/`YF_END`).
+- On-disk cache (`YF_CACHE_DIR`, default `/tmp/yf_cache`) avoids re-fetching.
+- Fundamentals from yfinance `.info` where available; news + the investing
+  company's balance sheet stay synthetic. Any failure (offline, rate-limit,
+  delisting) degrades gracefully to the synthetic generator.
+- **Redshift Text-to-SQL (`AwsDataProvider`)** is the production path for real
+  company financials — see Tyler's `advisors/redshift_tools.py` (Redshift Data
+  API + read-only `advisor_ro` user + Secrets Manager + SELECT-only guardrails).
+  Not deployed in this account yet (no `aws-finance-hackathon` stack).
 
 **Synthetic generator (industry-standard, aligned to 2015–2024 daily):**
 - 10 years × ~252 trading days = 2,520 daily points (matches yfinance plan).

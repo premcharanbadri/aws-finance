@@ -10,8 +10,8 @@ streamlit>=1.33,<2.0
 bedrock-agentcore
 bedrock-agentcore-starter-toolkit
 
-# Optional: real data provider (DATA_PROVIDER=yfinance)
-# yfinance>=0.2.40
+# Real data provider (DATA_PROVIDER=yfinance): real 2015-2024 prices, no AWS
+yfinance>=0.2.40
 
 # Optional: production portfolio optimizer / forecasting
 # PyPortfolioOpt>=1.5.5

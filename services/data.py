@@ -230,27 +230,95 @@ class SyntheticDataProvider(DataProvider):
 
 
 # ---------------------------------------------------------------------------
-# Stubs for real providers (same interface; implement when needed)
+# Real data providers (same interface as synthetic)
 # ---------------------------------------------------------------------------
 
 class YFinanceDataProvider(SyntheticDataProvider):
-    """Real prices via yfinance; news falls back to synthetic.
+    """Real market prices (and best-effort fundamentals) via yfinance.
 
-    Inherits synthetic fundamentals/news/financials so it is usable
-    immediately; override get_prices (and optionally get_fundamentals) with
-    yfinance calls. Left as a documented extension point.
+    - get_prices: real split/dividend-adjusted daily closes over a date range.
+      Defaults to the 2015-01-01 .. 2024-12-31 window; a `days` argument is
+      honored by returning the last `days` observations of that window.
+    - get_fundamentals: real values from yfinance `.info` where available,
+      falling back to the synthetic fields the Predictor expects.
+    - get_news / get_financials: remain synthetic (no free, reliable source;
+      the investing company's balance sheet is not a public-markets concept).
+
+    On-disk caching avoids re-hitting the network on every run. Any failure
+    (offline, rate-limit, delisted ticker) degrades gracefully to the
+    synthetic generator so the pipeline never hard-fails.
     """
 
-    def get_prices(self, ticker: str, days: int = 252) -> np.ndarray:  # pragma: no cover
+    START = os.getenv("YF_START", "2015-01-01")
+    END = os.getenv("YF_END", "2024-12-31")
+
+    def __init__(self, seed: int = 42, inject_missing: bool = False) -> None:
+        super().__init__(seed=seed, inject_missing=inject_missing)
+        self._price_cache: dict[str, np.ndarray] = {}
+        self._cache_dir = os.getenv("YF_CACHE_DIR", "/tmp/yf_cache")
+        os.makedirs(self._cache_dir, exist_ok=True)
+
+    def _cache_path(self, ticker: str) -> str:
+        safe = "".join(c for c in ticker if c.isalnum() or c in "._-")
+        return os.path.join(self._cache_dir, f"{safe}_{self.START}_{self.END}.npy")
+
+    def _load_full_series(self, ticker: str) -> np.ndarray:
+        """Full 2015-2024 adjusted close series (cached), or synthetic on failure."""
+        if ticker in self._price_cache:
+            return self._price_cache[ticker]
+        path = self._cache_path(ticker)
+        if os.path.exists(path):
+            arr = np.load(path)
+            self._price_cache[ticker] = arr
+            return arr
+        try:
+            import warnings
+
+            import yfinance as yf
+
+            warnings.filterwarnings("ignore")
+            hist = yf.Ticker(ticker).history(
+                start=self.START, end=self.END, auto_adjust=True
+            )["Close"].to_numpy()
+            arr = np.asarray(hist, dtype=float)
+            arr = arr[~np.isnan(arr)]
+            if arr.size < 2:
+                raise ValueError(f"no usable price data for {ticker}")
+            np.save(path, arr)
+            self._price_cache[ticker] = arr
+            return arr
+        except Exception:
+            # Graceful fallback keeps the pipeline running offline / on error.
+            arr = super().get_prices(ticker, days=DEFAULT_HISTORY_DAYS)
+            self._price_cache[ticker] = arr
+            return arr
+
+    def get_prices(self, ticker: str, days: int = DEFAULT_HISTORY_DAYS) -> np.ndarray:
+        full = self._load_full_series(ticker)
+        if days and days < full.size:
+            return full[-days:]
+        return full
+
+    def get_fundamentals(self, ticker: str) -> dict[str, Any]:
+        base = super().get_fundamentals(ticker)  # synthetic defaults / shape
         try:
             import yfinance as yf
 
-            hist = yf.Ticker(ticker).history(period=f"{days}d")["Close"].to_numpy()
-            if hist.size:
-                return hist
+            info = yf.Ticker(ticker).info or {}
+            if info.get("trailingPE") is not None:
+                base["pe_ratio"] = round(float(info["trailingPE"]), 2)
+            if info.get("profitMargins") is not None:
+                base["profit_margin"] = round(float(info["profitMargins"]), 3)
+            if info.get("revenueGrowth") is not None:
+                base["revenue_growth"] = round(float(info["revenueGrowth"]), 3)
+            if info.get("debtToEquity") is not None:
+                base["debt_to_equity"] = round(float(info["debtToEquity"]) / 100.0, 2)
+            if info.get("marketCap") is not None:
+                base["market_cap_b"] = round(float(info["marketCap"]) / 1e9, 1)
+            base["source"] = "yfinance"
         except Exception:
-            pass
-        return super().get_prices(ticker, days)
+            base["source"] = "synthetic-fallback"
+        return base
 
 
 class AwsDataProvider(DataProvider):  # pragma: no cover - production stub
