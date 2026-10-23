@@ -41,27 +41,54 @@ with st.sidebar:
     min_sharpe = st.slider("Min acceptable Sharpe", 0.0, 2.0, 0.5, 0.1)
 
     st.markdown("---")
-    st.subheader("Company financials (USD)")
-    st.caption(
-        "The budget is computed from YOUR company's numbers. Leave at 0 to get "
-        "an illustrative sample budget instead."
-    )
-    cash = st.number_input("Cash & equivalents", min_value=0.0, value=0.0, step=1_000_000.0, format="%.0f")
-    cur_liab = st.number_input("Current liabilities", min_value=0.0, value=0.0, step=1_000_000.0, format="%.0f")
-    obligations = st.number_input("Existing obligations", min_value=0.0, value=0.0, step=500_000.0, format="%.0f")
-    covenant_min = st.number_input("Debt covenant min cash", min_value=0.0, value=0.0, step=500_000.0, format="%.0f")
+    st.subheader("Company financials")
 
+    _provider_mode = os.getenv("DATA_PROVIDER", "synthetic").lower()
     financials = None
-    if cash > 0:
-        financials = {
-            "cash_and_equivalents": cash,
-            "current_liabilities": cur_liab,
-            "existing_obligations": obligations,
-            "debt_covenant_min_cash": covenant_min,
-            "current_assets": cash + cur_liab,  # conservative if not itemized
-        }
 
-    st.caption(f"Data provider: `{os.getenv('DATA_PROVIDER', 'synthetic')}`")
+    if _provider_mode == "aws":
+        # Budget comes from the real general ledger in Redshift (Text-to-SQL
+        # over liquidity_snapshot). No manual entry needed — show the live
+        # figures so it's clear they're GL-derived, not typed in.
+        st.caption("Budget is derived from your general ledger in Redshift (live).")
+        try:
+            from services.financials import get_financials_from_redshift
+
+            _fr = get_financials_from_redshift(company)
+            _d = _fr.data
+            st.metric(
+                "Investable cash (from GL)",
+                f"${_d.get('warehouse_investable_cash_usd', 0):,.0f}",
+            )
+            st.caption(
+                f"Unrestricted cash ${_d.get('cash_and_equivalents', 0):,.0f} · "
+                f"covenant min ${_d.get('debt_covenant_min_cash', 0):,.0f} · "
+                f"runway {_d.get('runway_months', 0)} mo · "
+                f"as of {_d.get('as_of_date', 'n/a')}"
+            )
+            st.caption(f"Source: `{_fr.source}`")
+        except Exception as e:
+            st.warning(f"Could not read GL budget from Redshift: {e}")
+    else:
+        # Non-warehouse modes: optional manual entry; blank -> illustrative.
+        st.caption(
+            "Enter your company's numbers for a real budget, or leave at 0 for "
+            "an illustrative sample."
+        )
+        cash = st.number_input("Cash & equivalents", min_value=0.0, value=0.0, step=1_000_000.0, format="%.0f")
+        cur_liab = st.number_input("Current liabilities", min_value=0.0, value=0.0, step=1_000_000.0, format="%.0f")
+        obligations = st.number_input("Existing obligations", min_value=0.0, value=0.0, step=500_000.0, format="%.0f")
+        covenant_min = st.number_input("Debt covenant min cash", min_value=0.0, value=0.0, step=500_000.0, format="%.0f")
+        if cash > 0:
+            financials = {
+                "cash_and_equivalents": cash,
+                "current_liabilities": cur_liab,
+                "existing_obligations": obligations,
+                "debt_covenant_min_cash": covenant_min,
+                "current_assets": cash + cur_liab,
+            }
+
+    st.caption(f"Data provider: `{_provider_mode}`")
     run = st.button("Generate recommendation", type="primary")
 
 if run:
