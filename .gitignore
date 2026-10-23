@@ -3,3 +3,5 @@
    .bedrock_agentcore.yaml
    __pycache__/
    *.zip
+# yfinance price cache
+.yf_cache/

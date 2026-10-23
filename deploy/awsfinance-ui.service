@@ -1,0 +1,26 @@
+[Unit]
+Description=AWS-Finance Investment Recommendation UI (Streamlit)
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=participant
+WorkingDirectory=/workshop/aws-finance
+Environment=DATA_PROVIDER=yfinance
+Environment=SENTIMENT_PROVIDER=comprehend
+Environment=AWS_REGION=us-east-1
+Environment=YF_CACHE_DIR=/workshop/aws-finance/.yf_cache
+ExecStart=/workshop/aws-finance/.venv/bin/streamlit run app.py \
+  --server.address 127.0.0.1 \
+  --server.port 8081 \
+  --server.baseUrlPath app \
+  --server.headless true \
+  --server.enableCORS false \
+  --server.enableXsrfProtection false \
+  --browser.gatherUsageStats false
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
