@@ -1,12 +1,13 @@
 """
-Streamlit platform UI.
+Streamlit platform UI — Virtual Advisory Firm.
 
-The user only queries the platform (no data ingestion). The app calls the
-Coordinator (orchestrator.recommend) and renders the grounded recommendation,
-the portfolio, market sentiment, the budget/liquidity review, and the
-compliance disclaimer + human-CPA flags.
+The user picks ONE specialist persona (or the full report), asks a question,
+and the app runs the coordinated pipeline once, then renders only that
+persona's view. Running the whole pipeline is required because the specialists
+depend on each other (the Analyst needs the budget; the Challenger needs the
+proposal) — but the user only sees the persona they selected.
 
-Run:  .venv/bin/streamlit run app.py
+Run:  streamlit run app.py
 """
 
 from __future__ import annotations
@@ -21,147 +22,219 @@ from services.schemas import to_dict
 
 st.set_page_config(page_title="Virtual Advisory Firm", layout="wide")
 
-st.title("🏛️ Virtual Advisory Firm for Corporate Clients")
-st.caption(
-    "Specialized AI agents coordinated into one recommendation — "
-    "Relationship Manager · Market Strategist · Accounting & Liquidity Reviewer · "
-    "Challenger · Investment Analyst"
-)
 
-with st.sidebar:
-    st.header("Query")
-    provider = get_provider()
-    industries = sorted(_INDUSTRIES)
-    industry = st.selectbox("Industry / market", industries, index=0)
-    company = st.text_input("Investing company", value="AcmeCorp")
-    query = st.text_area(
-        "Your question",
-        value=f"Which {industry} names should we invest in this quarter?",
-    )
-    max_iter = st.slider("Max revision iterations", 1, 5, 3)
-    min_sharpe = st.slider("Min acceptable Sharpe", 0.0, 2.0, 0.5, 0.1)
-    st.caption(f"Data provider: `{os.getenv('DATA_PROVIDER', 'synthetic')}`")
-    run = st.button("Generate recommendation", type="primary")
+# ---------------------------------------------------------------------------
+# Personas (the five firm specialists + the consolidated full report)
+# ---------------------------------------------------------------------------
+PERSONAS = {
+    "Relationship Manager": "🤝 Consolidated recommendation and the bottom line.",
+    "Investment Analyst": "📊 The proposed stock portfolio and allocations.",
+    "Market Strategist": "🌐 Market sentiment, themes, and exposures.",
+    "Accounting & Liquidity Reviewer": "🧾 Investable budget, runway, and CPA questions.",
+    "Challenger": "🔎 Weak assumptions, concentration, and conflicts.",
+    "Full report": "🏛️ Everything, in one scrollable view.",
+}
 
-if run:
-    with st.spinner("Advisory firm working: Accounting & Liquidity → Analyst + Strategist (parallel) → Challenger → backtest..."):
-        rec = orchestrator.recommend(
-            query,
-            industry=industry,
-            company=company,
-            max_iterations=max_iter,
-            min_sharpe=min_sharpe,
-        )
 
-    def money(x) -> str:
-        """Format a number as USD with the $ escaped so Streamlit markdown
-        does not treat it as the start of a LaTeX math span."""
-        try:
-            return f"\\${x:,.0f}"
-        except (TypeError, ValueError):
-            return "—"
+# ---------------------------------------------------------------------------
+# Small formatting helpers (Streamlit renders markdown: escape $ so figures
+# are not parsed as LaTeX math).
+# ---------------------------------------------------------------------------
+def money(x) -> str:
+    try:
+        return f"\\${x:,.0f}"
+    except (TypeError, ValueError):
+        return "—"
 
-    def safe(text) -> str:
-        """Escape $ in free text so it renders literally, not as math."""
-        return str(text or "").replace("$", "\\$")
 
-    status = "✅ Accepted" if rec.accepted else "⚠️ Not accepted (see rationale)"
-    st.subheader("Relationship Manager — consolidated recommendation")
-    st.markdown(f"**{status}**")
-    st.write(safe(rec.rationale))
+def safe(text) -> str:
+    return str(text or "").replace("$", "\\$")
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Confidence", f"{rec.confidence:.2f}")
-    col2.metric("Iterations", rec.iterations)
-    col3.metric("Market sentiment", f"{rec.market.sentiment_score:+.2f}")
 
-    st.markdown("### Investment Analyst — proposed portfolio")
-    positions = [to_dict(p) for p in rec.portfolio.positions]
-    held = [p for p in positions if p.get("weight", 0) > 0]
+def _held_positions(rec):
+    return [p for p in (to_dict(x) for x in rec.portfolio.positions) if p.get("weight", 0) > 0]
+
+
+# ---------------------------------------------------------------------------
+# Per-persona panels
+# ---------------------------------------------------------------------------
+def panel_relationship_manager(rec):
+    status = "✅ Accepted" if rec.accepted else "⚠️ Not accepted"
+    st.subheader("🤝 Relationship Manager")
+    st.markdown(f"**Decision:** {status}")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Confidence", f"{rec.confidence:.2f}")
+    c2.metric("Revision rounds", rec.iterations)
+    c3.metric("Investable budget", money(rec.budget.investable_budget))
+    st.markdown("**Recommendation**")
+    st.info(safe(rec.rationale))
+    if rec.cpa_review_required:
+        st.warning("🧾 Human CPA review required before acting.")
+
+
+def panel_investment_analyst(rec):
+    st.subheader("📊 Investment Analyst")
+    held = _held_positions(rec)
     if held:
+        st.markdown(f"Proposed portfolio — **{len(held)}** positions, "
+                    f"budget {money(rec.budget.investable_budget)}.")
         st.dataframe(
             [
                 {
                     "Ticker": p["ticker"],
-                    "Weight": f"{p['weight']:.2%}",
-                    "Allocation ($)": f"{p.get('dollars', 0):,.0f}",
-                    "Exp. return": f"{p['expected_return']:.2%}",
+                    "Weight": f"{p['weight']:.1%}",
+                    "Allocation": f"${p.get('dollars', 0):,.0f}",
+                    "Exp. return": f"{p['expected_return']:.1%}",
                     "Confidence": f"{p['confidence']:.2f}",
                 }
                 for p in held
             ],
             use_container_width=True,
+            hide_index=True,
         )
     else:
-        st.info(
-            "No positions carried weight in this run — the Analyst did not find "
-            "names that cleared the risk/return bar within the budget."
-        )
+        st.info("No positions cleared the risk/return bar within the budget this run.")
 
-    st.markdown("### Market Strategist")
+
+def panel_market_strategist(rec):
+    st.subheader("🌐 Market Strategist")
+    st.metric("Aggregate sentiment", f"{rec.market.sentiment_score:+.2f}")
     st.write(safe(rec.market.summary))
     if rec.market.themes:
-        st.write("Themes: " + safe(", ".join(rec.market.themes)))
+        st.markdown("**Themes:** " + safe(", ".join(rec.market.themes)))
     st.caption("Sources: " + ", ".join(rec.market.sources or ["—"]))
 
-    st.markdown("### Challenger")
+
+def panel_accounting(rec):
+    b = rec.budget
+    st.subheader("🧾 Accounting & Liquidity Reviewer")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Investable budget", money(b.investable_budget))
+    c2.metric("Cash available", money(b.cash_available))
+    c3.metric("Min cash buffer", money(b.min_cash_buffer))
+    st.write(safe(b.rationale))
+    flags = list(b.cpa_flags or [])
+    if flags:
+        st.markdown("**Questions / flags for a human CPA**")
+        for f in flags:
+            st.markdown(f"- {safe(f)}")
+
+
+def panel_challenger(rec):
+    st.subheader("🔎 Challenger")
     findings = list(getattr(rec, "challenger_findings", []) or [])
     if findings:
+        st.markdown("The Challenger raised the following against the proposal:")
         for f in findings:
-            st.write(f"- {safe(f)}")
+            st.markdown(f"- {safe(f)}")
     else:
         st.success("No weak assumptions, concentration, or conflicts flagged.")
 
-    st.markdown("### Historical backtest — original vs revised vs equal-weight baseline")
+
+def panel_backtest(rec):
+    """The key differentiator — shown with the Relationship Manager / Full report."""
     comp = getattr(rec, "comparison", {}) or {}
 
-    def _fmt(v, pct=True):
+    def fmt(v, pct=True):
         if v is None:
             return "—"
-        return f"{v:.2%}" if pct else f"{v:.2f}"
+        return f"{v:.1%}" if pct else f"{v:.2f}"
 
     legs_ok = any(
         (comp.get(k) or {}).get("annual_return") is not None
         for k in ("original", "revised", "equal_weight_baseline")
     )
+    st.markdown("### Historical backtest — original vs revised vs equal-weight baseline")
     if comp and legs_ok:
-        rows = []
-        for label, key in (
-            ("Original", "original"),
-            ("Revised", "revised"),
-            ("Equal-weight baseline", "equal_weight_baseline"),
-        ):
-            leg = comp.get(key, {})
-            rows.append({
-                "Portfolio": label,
-                "Annual return": _fmt(leg.get("annual_return")),
-                "Max drawdown": _fmt(leg.get("max_drawdown")),
-                "Sharpe": _fmt(leg.get("sharpe"), pct=False),
-            })
-        st.dataframe(rows, use_container_width=True)
-        st.caption(
-            "Key differentiator: every specialist's findings feed the revision; "
-            "we compare return and maximum drawdown against an equal-weight baseline."
+        st.dataframe(
+            [
+                {
+                    "Portfolio": label,
+                    "Annual return": fmt((comp.get(key) or {}).get("annual_return")),
+                    "Max drawdown": fmt((comp.get(key) or {}).get("max_drawdown")),
+                    "Sharpe": fmt((comp.get(key) or {}).get("sharpe"), pct=False),
+                }
+                for label, key in (
+                    ("Original", "original"),
+                    ("Revised", "revised"),
+                    ("Equal-weight baseline", "equal_weight_baseline"),
+                )
+            ],
+            use_container_width=True,
+            hide_index=True,
         )
+        st.caption("We compare return and maximum drawdown against an equal-weight baseline.")
     else:
         st.info("Backtest comparison unavailable (no priced positions to evaluate).")
 
-    st.markdown("### Accounting & Liquidity Reviewer")
-    b = rec.budget
-    st.markdown(
-        f"Investable budget: **{money(b.investable_budget)}** "
-        f"(cash {money(b.cash_available)}, min buffer {money(b.min_cash_buffer)})"
+
+# ---------------------------------------------------------------------------
+# Sidebar
+# ---------------------------------------------------------------------------
+st.title("🏛️ Virtual Advisory Firm for Corporate Clients")
+
+with st.sidebar:
+    st.header("1 · Choose an advisor")
+    persona = st.radio(
+        "Persona",
+        list(PERSONAS.keys()),
+        help="Pick one specialist to hear from, or the full report.",
     )
-    st.write(safe(b.rationale))
-    if rec.cpa_review_required:
-        st.warning("🧾 Human CPA review required.")
-        for flag in b.cpa_flags:
-            st.write(f"- {safe(flag)}")
+    st.caption(PERSONAS.get(persona, ""))
+
+    st.header("2 · Your question")
+    provider = get_provider()
+    industry = st.selectbox("Industry / market", sorted(_INDUSTRIES), index=0)
+    company = st.text_input("Investing company", value="AcmeCorp")
+    query = st.text_area("Question", value=f"Which {industry} names should we invest in this quarter?")
+
+    with st.expander("Advanced"):
+        max_iter = st.slider("Max revision iterations", 1, 5, 3)
+        min_sharpe = st.slider("Min acceptable Sharpe", 0.0, 2.0, 0.5, 0.1)
+        st.caption(f"Data provider: `{os.getenv('DATA_PROVIDER', 'synthetic')}`")
+
+    run = st.button("Ask the advisory firm", type="primary", use_container_width=True)
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+if run:
+    with st.spinner("Advisory firm working: Accounting & Liquidity → Analyst + Strategist → Challenger → backtest..."):
+        rec = orchestrator.recommend(
+            query, industry=industry, company=company,
+            max_iterations=max_iter, min_sharpe=min_sharpe,
+        )
+
+    st.caption(f"Query: _{safe(query)}_  ·  Company: **{safe(company)}**  ·  Industry: **{industry}**")
+
+    if persona == "Relationship Manager":
+        panel_relationship_manager(rec)
+        panel_backtest(rec)
+    elif persona == "Investment Analyst":
+        panel_investment_analyst(rec)
+    elif persona == "Market Strategist":
+        panel_market_strategist(rec)
+    elif persona == "Accounting & Liquidity Reviewer":
+        panel_accounting(rec)
+    elif persona == "Challenger":
+        panel_challenger(rec)
+    else:  # Full report
+        panel_relationship_manager(rec)
+        st.divider()
+        panel_investment_analyst(rec)
+        st.divider()
+        panel_market_strategist(rec)
+        st.divider()
+        panel_challenger(rec)
+        st.divider()
+        panel_accounting(rec)
+        st.divider()
+        panel_backtest(rec)
 
     st.markdown("---")
     st.caption(safe(rec.disclaimer))
-
     with st.expander("Raw recommendation (JSON)"):
         st.json(to_dict(rec))
 else:
-    st.info("Set your query in the sidebar and click **Generate recommendation**.")
+    st.info("👈 Pick an advisor and ask a question, then click **Ask the advisory firm**.")
