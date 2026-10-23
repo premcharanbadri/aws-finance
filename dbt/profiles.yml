@@ -1,0 +1,16 @@
+# Credentials come from env vars (Makefile exports them from the stack outputs and the
+# admin secret), so nothing secret is stored in git.
+aws_finance:
+  target: dev
+  outputs:
+    dev:
+      type: redshift
+      host: "{{ env_var('REDSHIFT_HOST') }}"
+      port: 5439
+      dbname: "{{ env_var('REDSHIFT_DATABASE', 'dev') }}"
+      user: "{{ env_var('REDSHIFT_USER', 'admin') }}"
+      password: "{{ env_var('REDSHIFT_PASSWORD') }}"
+      schema: analytics
+      threads: 4
+      sslmode: require
+      connect_timeout: 30

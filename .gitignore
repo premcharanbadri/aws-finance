@@ -1,5 +1,29 @@
-   .venv/
-   .env
-   .bedrock_agentcore.yaml
-   __pycache__/
-   *.zip
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Node
+node_modules/
+
+# Env / secrets
+.env
+
+# Run artifacts / caches
+runs/*.json
+
+# CDK
+infra/cdk.out/
+cdk.out/
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# OS
+.DS_Store
