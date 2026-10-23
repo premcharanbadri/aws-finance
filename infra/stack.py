@@ -102,6 +102,22 @@ class AwsFinanceHackathonStack(Stack):
             ),
         )
 
+        # ---- Read-only DB user for the advisor agents (user is created by
+        # scripts/setup_advisor_user.py; it only gets SELECT on the dbt mart schemas).
+        advisor_secret = secretsmanager.Secret(
+            self,
+            "AdvisorSecret",
+            secret_name=f"{PREFIX}-redshift-advisor",
+            removal_policy=RemovalPolicy.DESTROY,
+            generate_secret_string=secretsmanager.SecretStringGenerator(
+                secret_string_template='{"username": "advisor_ro"}',
+                generate_string_key="password",
+                password_length=32,
+                exclude_characters="/@\"'\\ `",
+                require_each_included_type=True,
+            ),
+        )
+
         # ---- Redshift Serverless ----
         namespace = rss.CfnNamespace(
             self,
@@ -131,5 +147,6 @@ class AwsFinanceHackathonStack(Stack):
         CfnOutput(self, "NamespaceName", value=PREFIX)
         CfnOutput(self, "Database", value=db_name)
         CfnOutput(self, "AdminSecretArn", value=admin_secret.secret_arn)
+        CfnOutput(self, "AdvisorSecretArn", value=advisor_secret.secret_arn)
         CfnOutput(self, "RedshiftRoleArn", value=redshift_role.role_arn)
         CfnOutput(self, "WorkgroupEndpoint", value=workgroup.attr_workgroup_endpoint_address)

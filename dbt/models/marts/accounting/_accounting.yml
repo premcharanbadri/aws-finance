@@ -1,0 +1,83 @@
+version: 2
+
+models:
+  - name: fct_gl_entries
+    description: >
+      General ledger journal lines with account metadata. natural_amount_usd is positive in the
+      account's normal direction. cash_flow_category is set on operating-cash (1000) lines only.
+    tests:
+      - journals_balance
+    columns:
+      - name: journal_line_id
+        tests: [unique, not_null]
+      - name: account_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_accounting__chart_of_accounts')
+                field: account_id
+
+  - name: monthly_account_balances
+    description: Month x GL account activity and month-end balance (natural sign).
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            columns: [month, account_id]
+
+  - name: income_statement_monthly
+    description: Monthly P&L - revenue by type, cost of revenue, gross profit, opex (payroll, marketing), interest, net income.
+    columns:
+      - name: month
+        tests: [unique, not_null]
+
+  - name: balance_sheet_monthly
+    description: Month-end balance sheet totals (cash, loans, debt, AP, taxes, equity).
+    tests:
+      - balance_sheet_balances
+    columns:
+      - name: month
+        tests: [unique, not_null]
+
+  - name: cash_flow_monthly
+    description: Monthly operating/investing/financing cash flow, ending cash, burn and the venture-debt minimum cash covenant test.
+    columns:
+      - name: month
+        tests: [unique, not_null]
+
+  - name: budget_vs_actual
+    description: Month x department x GL account actual vs budget with variance and is_unfavorable flag.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            columns: [month, department, account_id]
+
+  - name: fct_ap_invoices
+    description: AP invoices with days to pay, late payment, potential duplicate flags and aging bucket as of the as_of_date.
+    columns:
+      - name: invoice_id
+        tests: [unique, not_null]
+      - name: aging_bucket
+        tests:
+          - accepted_values:
+              arguments:
+                values: [paid, current, "1-30", "31-60", "61-90", "90+"]
+
+  - name: tax_calendar
+    description: Tax obligations with due dates, late payment days, penalties and days until due.
+    columns:
+      - name: obligation_id
+        tests: [unique, not_null]
+
+  - name: debt_covenants_monthly
+    description: Monthly debt outstanding, utilization vs limit and minimum-cash covenant test per facility.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            columns: [month, facility_id]
+
+  - name: liquidity_snapshot
+    description: >
+      One-row liquidity position as of the as_of_date: cash, 3-month average burn, runway, open AP,
+      taxes due in 180 days and an illustrative investable cash figure (cash less covenant minimum,
+      6-month operating reserve, open AP and upcoming taxes).

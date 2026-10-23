@@ -1,0 +1,34 @@
+name: aws_finance
+version: "1.0.0"
+config-version: 2
+profile: aws_finance
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Synthetic data runs Jan 2025 - Jun 2026; point-in-time marts (AP aging, runway) use this date.
+  as_of_date: "2026-06-30"
+  advisor_user: advisor_ro
+
+models:
+  aws_finance:
+    staging:
+      +schema: staging
+      +materialized: view
+    marts:
+      +materialized: table
+      +persist_docs:
+        relation: true   # table descriptions become Redshift comments the agents read
+      +grants:
+        select: ["advisor_ro"]  # keep in sync with vars.advisor_user
+      marketing:
+        +schema: marketing
+      accounting:
+        +schema: accounting
+
+on-run-end:
+  - "{{ grant_mart_schema_usage() }}"

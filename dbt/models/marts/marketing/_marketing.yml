@@ -1,0 +1,62 @@
+version: 2
+
+models:
+  - name: dim_campaigns
+    description: One row per marketing campaign with lifetime spend, funnel, unit economics and budget pacing.
+    columns:
+      - name: campaign_id
+        tests: [unique, not_null]
+      - name: channel
+        tests:
+          - accepted_values:
+              arguments:
+                values: [paid_search, paid_social, email, affiliate, influencer, display, referral]
+      - name: objective
+        tests:
+          - accepted_values:
+              arguments:
+                values: [acquisition, activation, reactivation]
+      - name: cost_per_funded_account_usd
+        description: Lifetime spend / funded accounts.
+      - name: is_over_budget
+        description: Spend > 105% of budget.
+
+  - name: fct_daily_campaign_performance
+    description: Daily delivery and funnel metrics per campaign, with channel/product/objective attached.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            columns: [activity_date, campaign_id]
+    columns:
+      - name: campaign_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_campaigns')
+                field: campaign_id
+
+  - name: dim_customers
+    description: One row per funded customer with acquisition attribution (is_organic = no campaign).
+    columns:
+      - name: customer_id
+        tests: [unique, not_null]
+      - name: acquisition_campaign_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_campaigns')
+                field: campaign_id
+
+  - name: channel_monthly_performance
+    description: Month x acquisition channel spend, funnel, new customers, revenue and 90-day retention. Organic has zero spend.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            columns: [month, channel]
+
+  - name: monthly_marketing_summary
+    description: Company-level monthly marketing spend vs. revenue and blended cost per funded account.
+    columns:
+      - name: month
+        tests: [unique, not_null]

@@ -1,0 +1,5 @@
+strands-agents==1.62.0
+boto3==1.40.31
+streamlit==1.66.1
+dbt-core==1.12.6
+dbt-redshift==1.11.1

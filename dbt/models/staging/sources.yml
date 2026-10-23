@@ -1,0 +1,20 @@
+version: 2
+
+sources:
+  - name: raw_marketing
+    description: Raw marketing CSVs loaded from s3://<bucket>/raw/marketing/ (all VARCHAR).
+    tables:
+      - name: campaigns
+      - name: daily_campaign_performance
+      - name: customers
+      - name: monthly_revenue
+
+  - name: raw_accounting
+    description: Raw accounting CSVs loaded from s3://<bucket>/raw/accounting/ (all VARCHAR).
+    tables:
+      - name: chart_of_accounts
+      - name: general_ledger
+      - name: ap_invoices
+      - name: tax_obligations
+      - name: debt_facilities
+      - name: budget
