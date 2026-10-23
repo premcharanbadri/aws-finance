@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@strands-agents/harness": "^0.3.1"
+  }
+}

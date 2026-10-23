@@ -1,0 +1,49 @@
+[
+  {
+    "client_id": "acme",
+    "company_name": "Acme Corp",
+    "cash_on_hand": 2000000,
+    "monthly_expenses": 150000,
+    "expected_monthly_revenue": 120000,
+    "obligations": [
+      {
+        "description": "Term loan payment",
+        "amount": 300000,
+        "due_in_months": 6
+      }
+    ],
+    "risk_tolerance": "moderate",
+    "horizon_months": 12
+  },
+  {
+    "client_id": "tight",
+    "company_name": "Tight Cash Co",
+    "cash_on_hand": 400000,
+    "monthly_expenses": 120000,
+    "expected_monthly_revenue": 80000,
+    "obligations": [
+      {
+        "description": "Payroll tax",
+        "amount": 90000,
+        "due_in_months": 2
+      },
+      {
+        "description": "Equipment purchase",
+        "amount": 150000,
+        "due_in_months": 5
+      }
+    ],
+    "risk_tolerance": "low",
+    "horizon_months": 12
+  },
+  {
+    "client_id": "flush",
+    "company_name": "Flush Holdings",
+    "cash_on_hand": 10000000,
+    "monthly_expenses": 200000,
+    "expected_monthly_revenue": 350000,
+    "obligations": [],
+    "risk_tolerance": "high",
+    "horizon_months": 36
+  }
+]
